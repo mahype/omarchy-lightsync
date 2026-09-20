@@ -2,8 +2,7 @@
 
 LightSync is a Linux-native screen synchronization service for Philips Hue
 Entertainment areas. Capture, color sampling, Hue streaming, and control stay
-in the user's session. The repository also provides an independent Omarchy
-Shell integration.
+in the user's session and is controlled through the Omarchy Shell panel or CLI.
 
 LightSync does not bypass DRM or HDCP. Protected video may be black in a normal
 Wayland screen-capture stream and therefore cannot drive the lights.
@@ -20,8 +19,7 @@ Wayland screen-capture stream and therefore cannot drive the lights.
   Service credential storage.
 - Named profiles containing mode, intensity, brightness, display, and area.
 - Optional restoration of the previous light state after an orderly stop.
-- English and German GUI text, plus system-language selection.
-- CLI, GTK/libadwaita GUI, systemd user service, and Omarchy status widget.
+- CLI, systemd user service, and Omarchy panel and status widget.
 
 Music mode, Scene mode, audio reactivity, coordinated multi-monitor capture,
 HDR-aware color processing, and broader Hue Sync feature parity are roadmap
@@ -35,10 +33,8 @@ screen for a session; it cannot target a configured display ID.
   and streaming. It exposes a user-only Unix socket.
 - `lightsync` controls the daemon. `lightsync status --watch --json` is the
   newline-delimited status contract used by desktop integrations.
-- `lightsync-gui` provides setup, synchronization controls, profiles, settings,
-  and diagnostics.
-- `integrations/omarchy` provides one shared status-stream service and a bar
-  widget. It does not poll once per monitor.
+- `integrations/omarchy` provides one shared status-stream service, a bar widget,
+  and the product's graphical controls. It does not poll once per monitor.
 
 Configuration is in `$XDG_CONFIG_HOME/omarchy-lightsync` (normally
 `~/.config/omarchy-lightsync`), runtime IPC is below
@@ -48,14 +44,14 @@ prototypes.
 
 ## Dependencies
 
-Runtime dependencies are GTK 4, libadwaita, PipeWire, OpenSSL,
-`xdg-desktop-portal`, a desktop-compatible portal backend, and a Secret Service
-provider such as GNOME Keyring or KeePassXC. The optional `grim` backend also
-requires `grim`. A Philips Hue Bridge and a configured Hue Entertainment area
-are required for light output.
+Runtime dependencies are PipeWire, OpenSSL, `xdg-desktop-portal`, a
+desktop-compatible portal backend, and a Secret Service provider such as GNOME
+Keyring or KeePassXC. The optional `grim` backend also requires `grim`. A
+Philips Hue Bridge and a configured Hue Entertainment area are required for
+light output.
 
 Building requires Rust 1.85 or newer, Cargo, Clang, `pkg-config`, and development
-headers for GTK 4, libadwaita, PipeWire, and OpenSSL.
+headers for PipeWire and OpenSSL.
 
 ## Install
 
@@ -99,11 +95,10 @@ not use `SKIP` or a fabricated digest.
 
 ## Setup
 
-Start the service and open the GUI for the guided flow:
+Start the service, then use the Omarchy panel or the CLI setup flow:
 
 ```sh
 systemctl --user start lightsync.service
-lightsync-gui
 ```
 
 The complete CLI pairing flow is:
@@ -166,17 +161,6 @@ lightsync profile delete PROFILE_UUID
 lightsync profile activate none
 ```
 
-### Language
-
-The GUI follows the system language by default and includes complete English
-and German resources. Override it with the GUI setting or:
-
-```sh
-lightsync config set language en
-lightsync config set language de
-lightsync config set language system
-```
-
 ## Safety Limits
 
 Stopping normally gives capture and Hue resources a bounded cleanup period and
@@ -197,15 +181,13 @@ enable the plugin repository:
 omarchy plugin add https://github.com/mahype/omarchy-lightsync.git --enable
 ```
 
-The plugin ID remains `io.github.mahype.omarchy-lightsync`, the Omarchy
-repository identity. This is intentionally distinct from the lowercase GUI
-desktop/AppStream ID `io.github.mahype.omarchylightsync`.
+The plugin ID is `io.github.mahype.omarchy-lightsync`, matching the Omarchy
+repository identity.
 
 Omarchy plugins are unsandboxed QML in the shell process. This plugin only runs
 the installed CLI status stream, opens its anchored controls panel after a left
-click, and starts or stops sync after a right click. The panel links to the full
-GTK application for setup and advanced controls. The plugin does not build or
-install LightSync, start the daemon, begin capture on load, request elevated
+click, and starts or stops sync after a right click. The plugin does not build
+or install LightSync, start the daemon, begin capture on load, request elevated
 privileges, or use repository hooks. The tooltip distinguishes a missing
 package, required setup, daemon errors, idle state, and active sync.
 `showWhenIdle` only hides the idle widget; errors and active sync stay visible.

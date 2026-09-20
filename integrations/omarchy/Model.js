@@ -18,7 +18,10 @@ var STRINGS = {
     brightness: "BRIGHTNESS", intensity: "INTENSITY", subtle: "Subtle",
     moderate: "Moderate", high: "High", extreme: "Extreme",
     connection: "CONNECTION", bridge: "Bridge", area: "Entertainment area",
-    connected: "Connected", notConfigured: "Not configured", openSetup: "Open setup",
+    connected: "Connected", notConfigured: "Not configured", discoverBridge: "Find Hue bridge",
+    noBridges: "No Hue bridges found.", pair: "Pair", pressLink: "Press the Hue bridge button, then continue.",
+    completePairing: "Continue pairing", refreshAreas: "Refresh areas", noAreas: "No Entertainment areas found.",
+    select: "Select", selected: "Selected", forgetBridge: "Forget bridge", lights: "%1 lights",
     profiles: "PROFILES", newProfile: "New profile name", create: "Create",
     noProfiles: "No profiles yet.", activeBadge: "ACTIVE", activate: "Activate",
     deleteLabel: "Delete", settings: "SETTINGS", captureBackend: "Capture backend",
@@ -26,7 +29,7 @@ var STRINGS = {
     restoreOnStopHint: "Return lights to their previous state after synchronization.",
     autoStart: "Start sync with the daemon", autoStartHint: "Requires reusable portal permission.",
     diagnostics: "DIAGNOSTICS", service: "Service", capture: "Capture", sync: "Sync",
-    status: "Status", openFullApp: "Open full application", refresh: "Refresh",
+    status: "Status", refresh: "Refresh",
     keyboardHint: "Esc close · Tab switch panel · R refresh", unknown: "Unknown",
     on: "On", off: "Off", stateIdle: "Idle", stateActive: "Active",
     stateReady: "Ready", stateStarting: "Starting", stateStopping: "Stopping",
@@ -52,7 +55,10 @@ var STRINGS = {
     brightness: "HELLIGKEIT", intensity: "INTENSITÄT", subtle: "Dezent",
     moderate: "Mittel", high: "Hoch", extreme: "Extrem",
     connection: "VERBINDUNG", bridge: "Bridge", area: "Entertainment-Bereich",
-    connected: "Verbunden", notConfigured: "Nicht eingerichtet", openSetup: "Einrichtung öffnen",
+    connected: "Verbunden", notConfigured: "Nicht eingerichtet", discoverBridge: "Hue Bridge suchen",
+    noBridges: "Keine Hue Bridges gefunden.", pair: "Koppeln", pressLink: "Drücke die Taste auf der Hue Bridge und fahre dann fort.",
+    completePairing: "Kopplung fortsetzen", refreshAreas: "Bereiche aktualisieren", noAreas: "Keine Entertainment-Bereiche gefunden.",
+    select: "Auswählen", selected: "Ausgewählt", forgetBridge: "Bridge vergessen", lights: "%1 Lampen",
     profiles: "PROFILE", newProfile: "Neuer Profilname", create: "Erstellen",
     noProfiles: "Noch keine Profile.", activeBadge: "AKTIV", activate: "Aktivieren",
     deleteLabel: "Löschen", settings: "EINSTELLUNGEN", captureBackend: "Aufnahme-Backend",
@@ -60,7 +66,7 @@ var STRINGS = {
     restoreOnStopHint: "Setzt die Lampen nach der Synchronisierung auf ihren vorherigen Zustand zurück.",
     autoStart: "Sync mit dem Dienst starten", autoStartHint: "Benötigt eine wiederverwendbare Portal-Freigabe.",
     diagnostics: "DIAGNOSE", service: "Dienst", capture: "Aufnahme", sync: "Sync",
-    status: "Status", openFullApp: "Vollständige Anwendung öffnen", refresh: "Aktualisieren",
+    status: "Status", refresh: "Aktualisieren",
     keyboardHint: "Esc schließen · Tab Panel wechseln · R aktualisieren", unknown: "Unbekannt",
     on: "An", off: "Aus", stateIdle: "Inaktiv", stateActive: "Aktiv",
     stateReady: "Bereit", stateStarting: "Startet", stateStopping: "Wird beendet",
@@ -87,7 +93,7 @@ function parse(line) {
 function parseConfig(raw) {
   var config = {}
   var recognized = 0
-  var allowed = ["language", "backend", "mode", "intensity", "brightness", "audio-reactive",
+  var allowed = ["backend", "mode", "intensity", "brightness", "audio-reactive",
     "restore-on-stop", "launch-at-login", "auto-start"]
   String(raw || "").split(/\r?\n/).forEach(function(line) {
     var separator = line.indexOf("=")
@@ -121,6 +127,34 @@ function parseProfiles(raw) {
   return { ok: !invalid, profiles: profiles }
 }
 
+function parseBridges(raw) {
+  var bridges = []
+  var text = String(raw || "").replace(/\r/g, "").replace(/\n+$/, "")
+  if (!text || /^No bridges found\.?$/i.test(text.trim())) return { ok: true, bridges: bridges }
+  var invalid = false
+  text.split("\n").forEach(function(line) {
+    if (!line) return
+    var fields = line.split("\t")
+    if (fields.length < 3 || !/^[0-9a-f]{16}$/i.test(fields[0]) || !fields[1]) { invalid = true; return }
+    bridges.push({ id: fields[0], host: fields[1], name: fields.slice(2).join("\t") })
+  })
+  return { ok: !invalid, bridges: bridges }
+}
+
+function parseAreas(raw) {
+  var areas = []
+  var text = String(raw || "").replace(/\r/g, "").replace(/\n+$/, "")
+  if (!text || /^No entertainment areas found\.?$/i.test(text.trim())) return { ok: true, areas: areas }
+  var invalid = false
+  text.split("\n").forEach(function(line) {
+    if (!line) return
+    var match = line.match(/^([* ]) ([^\t]+)\t([^\t]+)\t([0-9]+) lights$/)
+    if (!match) { invalid = true; return }
+    areas.push({ id: match[2], name: match[3], lights: Number(match[4]), selected: match[1] === "*" })
+  })
+  return { ok: !invalid, areas: areas }
+}
+
 function level(doc, installed) {
   if (!installed) return "missing"
   if (!doc) return "unavailable"
@@ -148,8 +182,7 @@ function panelActions(doc, installed, busy) {
   return {
     start: installed === true && !busy && canStart(doc),
     stop: installed === true && !busy && isRunning(doc),
-    mutate: installed === true && !busy,
-    setup: installed === true && !busy && level(doc, installed) === "setup"
+    mutate: installed === true && !busy
   }
 }
 
@@ -204,7 +237,8 @@ function streamStopped(exitCode, s) { return s.streamStopped.replace("%1", Strin
 
 if (typeof module !== "undefined") module.exports = {
   STRINGS: STRINGS, strings: strings, parse: parse, parseConfig: parseConfig,
-  parseProfiles: parseProfiles, level: level, isRunning: isRunning, canStart: canStart,
+  parseProfiles: parseProfiles, parseBridges: parseBridges, parseAreas: parseAreas,
+  level: level, isRunning: isRunning, canStart: canStart,
   panelActions: panelActions, headline: headline, detail: detail, fps: fps,
   stateLabel: stateLabel, tooltip: tooltip, compactError: compactError,
   streamStopped: streamStopped

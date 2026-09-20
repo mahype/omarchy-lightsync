@@ -5,8 +5,8 @@ use anyhow::{Context, Result, bail};
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use lightsync_domain::{
     AppConfig, AreaId, BridgeId, Brightness, CaptureBackend, CaptureState, ConfigUpdate,
-    DiscoveredBridge, ErrorCode, Intensity, Language, PROTOCOL_VERSION, Profile, ProfileId,
-    Request, ResponsePayload, ServiceState, StatusSnapshot, SyncMode, SyncState,
+    DiscoveredBridge, ErrorCode, Intensity, PROTOCOL_VERSION, Profile, ProfileId, Request,
+    ResponsePayload, ServiceState, StatusSnapshot, SyncMode, SyncState,
 };
 use lightsync_ipc::{Client, WatchOptions};
 use serde_json::{Value, json};
@@ -77,7 +77,6 @@ enum ConfigCommand {
 
 #[derive(Debug, Clone, Copy, ValueEnum)]
 enum ConfigKey {
-    Language,
     Backend,
     Mode,
     Intensity,
@@ -447,7 +446,6 @@ async fn config_command(client: &Client, command: ConfigCommand) -> Result<()> {
 }
 
 fn print_config(config: &AppConfig) -> Result<()> {
-    println!("language={}", language_name(config.language));
     println!("backend={}", capture_backend_name(config.capture_backend));
     println!("mode={}", sync_mode_name(config.sync.mode));
     println!("intensity={}", intensity_name(config.sync.intensity));
@@ -462,7 +460,6 @@ fn print_config(config: &AppConfig) -> Result<()> {
 fn config_update(config: &AppConfig, key: ConfigKey, value: &str) -> Result<ConfigUpdate> {
     let mut update = ConfigUpdate::default();
     match key {
-        ConfigKey::Language => update.language = Some(parse_language(value)?),
         ConfigKey::Backend => update.capture_backend = Some(parse_backend(value)?),
         ConfigKey::Mode => {
             let mut sync = config.sync.clone();
@@ -686,15 +683,6 @@ fn parse_bool(value: &str) -> Result<bool> {
     }
 }
 
-fn parse_language(value: &str) -> Result<Language> {
-    match value {
-        "system" => Ok(Language::System),
-        "en" => Ok(Language::En),
-        "de" => Ok(Language::De),
-        _ => bail!("language must be one of: system, en, de"),
-    }
-}
-
 fn parse_backend(value: &str) -> Result<CaptureBackend> {
     match value {
         "portal-pipewire" => Ok(CaptureBackend::PortalPipewire),
@@ -725,13 +713,6 @@ fn parse_intensity(value: &str) -> Result<Intensity> {
 
 const fn yes_no(value: bool) -> &'static str {
     if value { "yes" } else { "no" }
-}
-const fn language_name(value: Language) -> &'static str {
-    match value {
-        Language::System => "system",
-        Language::En => "en",
-        Language::De => "de",
-    }
 }
 const fn capture_backend_name(value: CaptureBackend) -> &'static str {
     match value {

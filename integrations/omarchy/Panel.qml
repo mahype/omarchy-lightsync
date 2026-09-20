@@ -19,6 +19,8 @@ Panel {
   readonly property var status: service ? service.status : null
   readonly property var config: service ? service.config : ({})
   readonly property var profiles: service ? service.profiles : []
+  readonly property var bridges: service ? service.bridges : []
+  readonly property var areas: service ? service.areas : []
   readonly property var actions: Model.panelActions(status, service ? service.installed : false,
     service ? service.busy : false)
   readonly property bool running: Model.isRunning(status)
@@ -26,8 +28,13 @@ Panel {
   readonly property color urgent: bar ? bar.urgent : Color.urgent
   readonly property color dim: Qt.darker(foreground, 1.55)
   readonly property string fontFamily: bar ? bar.fontFamily : Style.font.family
-  readonly property bool editing: profileField.activeFocus || modeDropdown.popupOpen
-    || intensityDropdown.popupOpen || backendDropdown.popupOpen
+  readonly property bool editing: profileField.activeFocus
+
+  function areaName() {
+    var id = status && status.area ? String(status.area.id || "") : ""
+    for (var i = 0; i < areas.length; i++) if (String(areas[i].id) === id) return areas[i].name
+    return id || strings.notConfigured
+  }
 
   function open() {
     controller.show()
@@ -147,20 +154,26 @@ Panel {
             width: parent.width
             spacing: Style.space(8)
             PanelSectionHeader { text: root.strings.mode; foreground: root.foreground; fontFamily: root.fontFamily }
-            Dropdown {
-              id: modeDropdown
+            Row {
               width: parent.width
-              showLabel: false
-              value: String(root.config.mode || "video")
-              options: [
+              spacing: Style.space(6)
+              Repeater {
+                model: [
                 { value: "video", label: root.strings.video },
                 { value: "game", label: root.strings.game }
-              ]
-              enabled: root.actions.mutate
-              foreground: root.foreground
-              fontFamily: root.fontFamily
-              onChanged: function(value) {
-                if (root.service && value !== root.config.mode) root.service.setConfig("mode", value)
+                ]
+                Button {
+                  required property var modelData
+                  width: (parent.width - parent.spacing) / 2
+                  text: modelData.label
+                  selected: String(root.config.mode || "video") === modelData.value
+                  bordered: true
+                  focusable: true
+                  enabled: root.actions.mutate && !selected
+                  foreground: root.foreground
+                  fontFamily: root.fontFamily
+                  onClicked: if (root.service) root.service.setConfig("mode", modelData.value)
+                }
               }
             }
             Text {
@@ -221,22 +234,29 @@ Panel {
             width: parent.width
             spacing: Style.space(8)
             PanelSectionHeader { text: root.strings.intensity; foreground: root.foreground; fontFamily: root.fontFamily }
-            Dropdown {
-              id: intensityDropdown
+            Row {
               width: parent.width
-              showLabel: false
-              value: String(root.config.intensity || "moderate")
-              options: [
-                { value: "subtle", label: root.strings.subtle },
-                { value: "moderate", label: root.strings.moderate },
-                { value: "high", label: root.strings.high },
-                { value: "extreme", label: root.strings.extreme }
-              ]
-              enabled: root.actions.mutate
-              foreground: root.foreground
-              fontFamily: root.fontFamily
-              onChanged: function(value) {
-                if (root.service && value !== root.config.intensity) root.service.setConfig("intensity", value)
+              spacing: Style.space(6)
+              Repeater {
+                model: [
+                  { value: "subtle", label: root.strings.subtle },
+                  { value: "moderate", label: root.strings.moderate },
+                  { value: "high", label: root.strings.high },
+                  { value: "extreme", label: root.strings.extreme }
+                ]
+                Button {
+                  required property var modelData
+                  width: (parent.width - parent.spacing * 3) / 4
+                  text: modelData.label
+                  selected: String(root.config.intensity || "moderate") === modelData.value
+                  bordered: true
+                  focusable: true
+                  enabled: root.actions.mutate && !selected
+                  foreground: root.foreground
+                  fontFamily: root.fontFamily
+                  horizontalPadding: Style.space(4)
+                  onClicked: if (root.service) root.service.setConfig("intensity", modelData.value)
+                }
               }
             }
           }
@@ -261,8 +281,97 @@ Panel {
                 anchors.margins: Style.space(10)
                 spacing: Style.space(7)
                 Text { text: root.strings.bridge + ": " + (root.status && root.status.bridge.state === "ready" ? root.strings.connected : root.strings.notConfigured); color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.body }
-                Text { text: root.strings.area + ": " + (root.status && root.status.area ? root.status.area.name : root.strings.notConfigured); color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.bodySmall; elide: Text.ElideRight; width: parent.width }
-                Button { visible: root.actions.setup; text: root.strings.openSetup; bordered: true; focusable: true; foreground: root.foreground; fontFamily: root.fontFamily; onClicked: root.service.openApp() }
+                Text { text: root.strings.area + ": " + root.areaName(); color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.bodySmall; elide: Text.ElideRight; width: parent.width }
+
+                Button {
+                  visible: !root.status || root.status.bridge.state !== "ready"
+                  width: parent.width
+                  text: root.strings.discoverBridge
+                  bordered: true
+                  focusable: true
+                  enabled: root.service && !root.service.busy && (!root.status || root.status.bridge.state !== "pairing")
+                  foreground: root.foreground
+                  fontFamily: root.fontFamily
+                  onClicked: root.service.discoverBridges()
+                }
+                Repeater {
+                  model: root.bridges
+                  BorderSurface {
+                    required property var modelData
+                    width: connectionBody.width
+                    implicitHeight: bridgeRow.implicitHeight + Style.space(14)
+                    color: "transparent"
+                    borderSpec: Border.flat(root.dim, 1)
+                    radius: Style.cornerRadius
+                    Row {
+                      id: bridgeRow
+                      anchors.left: parent.left
+                      anchors.right: parent.right
+                      anchors.verticalCenter: parent.verticalCenter
+                      anchors.margins: Style.space(7)
+                      spacing: Style.space(7)
+                      Column {
+                        width: parent.width - pairButton.width - parent.spacing
+                        Text { width: parent.width; text: modelData.name || root.strings.bridge; color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.body; elide: Text.ElideRight }
+                        Text { width: parent.width; text: modelData.host; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption; elide: Text.ElideRight }
+                      }
+                      Button { id: pairButton; text: root.strings.pair; bordered: true; focusable: true; enabled: root.service && !root.service.busy; foreground: root.foreground; fontFamily: root.fontFamily; onClicked: root.service.useBridge(modelData) }
+                    }
+                  }
+                }
+                Text { visible: root.service && root.service.bridgesLoaded && root.bridges.length === 0; width: parent.width; text: root.strings.noBridges; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption; wrapMode: Text.WordWrap }
+
+                Text { visible: root.status && root.status.bridge.state === "pairing"; width: parent.width; text: root.strings.pressLink; color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.bodySmall; wrapMode: Text.WordWrap }
+                Button {
+                  visible: root.status && root.status.bridge.state === "pairing"
+                  width: parent.width
+                  text: root.strings.completePairing
+                  bordered: true
+                  focusable: true
+                  enabled: root.service && !root.service.busy && root.service.pendingBridgeId !== ""
+                  foreground: root.foreground
+                  fontFamily: root.fontFamily
+                  onClicked: root.service.completePairing()
+                }
+
+                Button {
+                  visible: root.status && root.status.bridge.state === "ready"
+                  width: parent.width
+                  text: root.strings.refreshAreas
+                  bordered: true
+                  focusable: true
+                  enabled: root.service && !root.service.busy
+                  foreground: root.foreground
+                  fontFamily: root.fontFamily
+                  onClicked: root.service.refreshAreas()
+                }
+                Repeater {
+                  model: root.areas
+                  Button {
+                    required property var modelData
+                    width: connectionBody.width
+                    text: modelData.name + " · " + root.strings.lights.replace("%1", String(modelData.lights))
+                    selected: modelData.selected
+                    bordered: true
+                    focusable: true
+                    enabled: root.service && !root.service.busy && !modelData.selected
+                    foreground: root.foreground
+                    fontFamily: root.fontFamily
+                    onClicked: root.service.selectArea(modelData.id)
+                  }
+                }
+                Text { visible: root.service && root.service.areasLoaded && root.areas.length === 0; width: parent.width; text: root.strings.noAreas; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption; wrapMode: Text.WordWrap }
+                Button {
+                  visible: root.status && ["ready", "unreachable"].indexOf(root.status.bridge.state) >= 0
+                  width: parent.width
+                  text: root.strings.forgetBridge
+                  bordered: true
+                  focusable: true
+                  enabled: root.service && !root.service.busy && !root.running
+                  foreground: root.urgent
+                  fontFamily: root.fontFamily
+                  onClicked: root.service.forgetBridge()
+                }
               }
             }
           }
@@ -335,20 +444,27 @@ Panel {
             width: parent.width
             spacing: Style.space(10)
             PanelSectionHeader { text: root.strings.settings; foreground: root.foreground; fontFamily: root.fontFamily }
-            Dropdown {
-              id: backendDropdown
+            PanelSectionHeader { text: root.strings.captureBackend; foreground: root.foreground; fontFamily: root.fontFamily }
+            Row {
               width: parent.width
-              label: root.strings.captureBackend
-              value: String(root.config.backend || "portal-pipewire")
-              options: [
-                { value: "portal-pipewire", label: root.strings.portal },
-                { value: "grim", label: root.strings.grim }
-              ]
-              enabled: root.actions.mutate
-              foreground: root.foreground
-              fontFamily: root.fontFamily
-              onChanged: function(value) {
-                if (root.service && value !== root.config.backend) root.service.setConfig("backend", value)
+              spacing: Style.space(6)
+              Repeater {
+                model: [
+                  { value: "portal-pipewire", label: root.strings.portal },
+                  { value: "grim", label: root.strings.grim }
+                ]
+                Button {
+                  required property var modelData
+                  width: (parent.width - parent.spacing) / 2
+                  text: modelData.label
+                  selected: String(root.config.backend || "portal-pipewire") === modelData.value
+                  bordered: true
+                  focusable: true
+                  enabled: root.actions.mutate && !selected
+                  foreground: root.foreground
+                  fontFamily: root.fontFamily
+                  onClicked: if (root.service) root.service.setConfig("backend", modelData.value)
+                }
               }
             }
             Toggle {
@@ -383,18 +499,6 @@ Panel {
             Text { width: parent.width; text: root.strings.capture + ": " + Model.stateLabel(root.status ? root.status.capture.state : "", root.strings); color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.bodySmall }
             Text { width: parent.width; text: root.strings.sync + ": " + Model.stateLabel(root.status ? root.status.sync.state : "", root.strings); color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.bodySmall }
             Text { width: parent.width; text: Model.fps(root.status, root.strings); color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption }
-          }
-
-          Button {
-            width: parent.width
-            text: root.strings.openFullApp
-            iconText: "󰋜"
-            bordered: true
-            focusable: true
-            enabled: root.service && root.service.installed
-            foreground: root.foreground
-            fontFamily: root.fontFamily
-            onClicked: root.service.openApp()
           }
 
           Text {

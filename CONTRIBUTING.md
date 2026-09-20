@@ -28,15 +28,14 @@ possible.
 
 ## Design requirements
 
-- Keep capture opt-in. A daemon, desktop file, or plugin loading must not start
+- Keep capture opt-in. A daemon or plugin loading must not start
   screen capture or synchronization.
 - Do not add privileged helpers or implicit package installation.
 - Keep machine-readable output backward compatible or version its contract.
 - Never log Hue credentials, Secret Service values, captured pixels, or raw
   frame data.
 - Prefer the streaming status interface over repeated polling.
-- Keep UI copy in English by default. German localization may be added where
-  the integration can select it safely.
+- Keep UI copy in English by default.
 - Update dependency disclosures and packaging metadata when native or runtime
   requirements change.
 

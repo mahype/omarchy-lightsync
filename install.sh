@@ -26,15 +26,17 @@ fi
 files=(
   "$prefix/bin/lightsync"
   "$prefix/bin/lightsyncd"
+  "$prefix/share/systemd/user/lightsync.service"
+  "$prefix/share/licenses/lightsync/LICENSE"
+)
+legacy_gui_files=(
   "$prefix/bin/lightsync-gui"
   "$prefix/share/applications/io.github.mahype.omarchylightsync.desktop"
   "$prefix/share/metainfo/io.github.mahype.omarchylightsync.metainfo.xml"
   "$prefix/share/icons/hicolor/scalable/apps/io.github.mahype.omarchylightsync.svg"
-  "$prefix/share/systemd/user/lightsync.service"
-  "$prefix/share/licenses/lightsync/LICENSE"
 )
 marker="$prefix/share/lightsync/source-install-v1"
-unit_path=${files[6]}
+unit_path=${files[2]}
 
 if [[ $mode = uninstall ]]; then
   if [[ ! -f $marker ]]; then
@@ -48,7 +50,7 @@ if [[ $mode = uninstall ]]; then
   if [[ $fragment == "$unit_path" ]]; then
     systemctl --user disable --now lightsync.service 2>/dev/null || true
   fi
-  rm -f -- "${files[@]}"
+  rm -f -- "${files[@]}" "${legacy_gui_files[@]}"
   rm -f -- "$marker"
   if command -v systemctl >/dev/null 2>&1; then
     systemctl --user daemon-reload 2>/dev/null || true
@@ -58,7 +60,9 @@ if [[ $mode = uninstall ]]; then
 fi
 
 command -v cargo >/dev/null 2>&1 || { printf 'cargo is required to build LightSync\n' >&2; exit 1; }
-if [[ ! -f $marker ]]; then
+if [[ -f $marker ]]; then
+  rm -f -- "${legacy_gui_files[@]}"
+else
   for file in "${files[@]}"; do
     if [[ -e $file ]]; then
       printf 'Refusing to overwrite untracked file: %s\n' "$file" >&2
@@ -72,11 +76,7 @@ target_dir=${CARGO_TARGET_DIR:-"$repo_dir/target"}
 install -Dm644 /dev/null "$marker"
 install -Dm755 "$target_dir/release/lightsync" "${files[0]}"
 install -Dm755 "$target_dir/release/lightsyncd" "${files[1]}"
-install -Dm755 "$target_dir/release/lightsync-gui" "${files[2]}"
-install -Dm644 "$repo_dir/data/io.github.mahype.omarchylightsync.desktop" "${files[3]}"
-install -Dm644 "$repo_dir/data/io.github.mahype.omarchylightsync.metainfo.xml" "${files[4]}"
-install -Dm644 "$repo_dir/data/icons/hicolor/scalable/apps/io.github.mahype.omarchylightsync.svg" "${files[5]}"
-install -Dm644 "$repo_dir/LICENSE" "${files[7]}"
+install -Dm644 "$repo_dir/LICENSE" "${files[3]}"
 
 unit_tmp=$(mktemp)
 trap 'rm -f -- "$unit_tmp"' EXIT
@@ -87,7 +87,7 @@ while IFS= read -r line || [[ -n $line ]]; do
     printf '%s\n' "$line"
   fi
 done < "$repo_dir/data/systemd/user/lightsync.service" > "$unit_tmp"
-install -Dm644 "$unit_tmp" "${files[6]}"
+install -Dm644 "$unit_tmp" "${files[2]}"
 if command -v systemctl >/dev/null 2>&1; then
   systemctl --user daemon-reload 2>/dev/null || \
     printf 'Warning: systemd user manager is unavailable; reload it before starting LightSync.\n' >&2

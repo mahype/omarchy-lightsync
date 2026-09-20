@@ -96,8 +96,8 @@ impl Daemon {
         let pending_pairing = pending_config
             .as_ref()
             .and_then(|bridge| client_from_config(bridge).ok());
-        let mut status = StatusSnapshot {
-            service: ServiceState::Starting,
+        let status = StatusSnapshot {
+            service: ServiceState::Ready,
             bridge: if config.bridge.is_some() {
                 BridgeState::Disconnected
             } else if pending_config.is_some() {
@@ -113,7 +113,6 @@ impl Daemon {
             .parent()
             .expect("validated config path has a parent")
             .join("portal-restore-token");
-        status.service = ServiceState::Ready;
         Ok(Self {
             inner: Arc::new(Inner {
                 state: Mutex::new(State {
@@ -502,7 +501,6 @@ impl Daemon {
             return self.forget_bridge().await;
         }
         let sync_only = update.sync.is_some()
-            && update.language.is_none()
             && update.capture_backend.is_none()
             && update.restore_on_stop.is_none()
             && update.launch_at_login.is_none()
@@ -1237,6 +1235,15 @@ mod tests {
             display: None,
             area: None,
         }
+    }
+
+    #[tokio::test]
+    async fn initial_status_subscription_matches_ready_daemon() {
+        let daemon = daemon().await;
+        let published = daemon.subscribe_status().borrow().clone();
+
+        assert_eq!(daemon.status().await.service, ServiceState::Ready);
+        assert_eq!(published.service, ServiceState::Ready);
     }
 
     struct FailingCapture {

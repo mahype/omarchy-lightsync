@@ -251,15 +251,6 @@ impl EntertainmentArea {
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
-pub enum Language {
-    #[default]
-    System,
-    En,
-    De,
-}
-
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
 pub enum CaptureBackend {
     #[default]
     PortalPipewire,
@@ -333,7 +324,6 @@ impl Profile {
 pub struct AppConfig {
     pub schema_version: u32,
     pub revision: u64,
-    pub language: Language,
     pub capture_backend: CaptureBackend,
     pub sync: SyncSettings,
     pub restore_on_stop: bool,
@@ -351,7 +341,6 @@ impl Default for AppConfig {
         Self {
             schema_version: CURRENT_SCHEMA_VERSION,
             revision: 0,
-            language: Language::System,
             capture_backend: CaptureBackend::PortalPipewire,
             sync: SyncSettings::default(),
             restore_on_stop: true,
@@ -391,9 +380,6 @@ impl AppConfig {
 
     pub fn apply_update(&mut self, update: ConfigUpdate) -> Result<(), ValidationError> {
         let mut next = self.clone();
-        if let Some(value) = update.language {
-            next.language = value;
-        }
         if let Some(value) = update.capture_backend {
             next.capture_backend = value;
         }
@@ -428,8 +414,6 @@ impl AppConfig {
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct ConfigUpdate {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub language: Option<Language>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub capture_backend: Option<CaptureBackend>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -503,7 +487,7 @@ mod tests {
         config.active_profile = Some(missing);
         let original = config.clone();
         let result = config.apply_update(ConfigUpdate {
-            language: Some(Language::De),
+            restore_on_stop: Some(false),
             ..ConfigUpdate::default()
         });
         assert_eq!(result, Err(ValidationError::UnknownActiveProfile(missing)));

@@ -12,7 +12,7 @@ cat > "$sandbox/bin/cargo" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
 mkdir -p "$CARGO_TARGET_DIR/release"
-for binary in lightsync lightsyncd lightsync-gui; do
+for binary in lightsync lightsyncd; do
   printf '#!/usr/bin/env sh\nexit 0\n' > "$CARGO_TARGET_DIR/release/$binary"
   chmod +x "$CARGO_TARGET_DIR/release/$binary"
 done
@@ -28,16 +28,40 @@ EOF
 chmod +x "$sandbox/bin/cargo" "$sandbox/bin/systemctl"
 export PATH="$sandbox/bin:$PATH"
 
+mkdir -p "$HOME/.local/bin"
+: > "$HOME/.local/bin/lightsync-gui"
 "$repo_dir/install.sh"
 test -x "$HOME/.local/bin/lightsync"
+test -e "$HOME/.local/bin/lightsync-gui"
 test -f "$HOME/.local/share/lightsync/source-install-v1"
 grep -Fx 'ExecStart=%h/.local/bin/lightsyncd' \
   "$HOME/.local/share/systemd/user/lightsync.service" >/dev/null
+legacy_gui_files=(
+  "$HOME/.local/bin/lightsync-gui"
+  "$HOME/.local/share/applications/io.github.mahype.omarchylightsync.desktop"
+  "$HOME/.local/share/metainfo/io.github.mahype.omarchylightsync.metainfo.xml"
+  "$HOME/.local/share/icons/hicolor/scalable/apps/io.github.mahype.omarchylightsync.svg"
+)
+for file in "${legacy_gui_files[@]}"; do
+  mkdir -p "$(dirname -- "$file")"
+  : > "$file"
+done
+"$repo_dir/install.sh"
+for file in "${legacy_gui_files[@]}"; do
+  test ! -e "$file"
+done
 mkdir -p "$HOME/.config/omarchy-lightsync"
 printf 'preserve me\n' > "$HOME/.config/omarchy-lightsync/config.toml"
+for file in "${legacy_gui_files[@]}"; do
+  mkdir -p "$(dirname -- "$file")"
+  : > "$file"
+done
 
 "$repo_dir/install.sh" --uninstall
 test ! -e "$HOME/.local/bin/lightsync"
+for file in "${legacy_gui_files[@]}"; do
+  test ! -e "$file"
+done
 test -f "$HOME/.config/omarchy-lightsync/config.toml"
 grep -F 'disable --now lightsync.service' "$HOME/systemctl.log" >/dev/null
 

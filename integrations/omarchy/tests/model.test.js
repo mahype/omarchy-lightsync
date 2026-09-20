@@ -1,5 +1,7 @@
 const test = require("node:test")
 const assert = require("node:assert/strict")
+const fs = require("node:fs")
+const path = require("node:path")
 const Model = require("../Model.js")
 
 function status(sync = "idle", bridge = "ready", configured = true) {
@@ -74,14 +76,14 @@ test("selects German labels safely", () => {
 
 test("parses config show values and ignores unrelated output", () => {
   const result = Model.parseConfig([
-    "language=system", "backend=portal-pipewire", "mode=game",
+    "backend=portal-pipewire", "mode=game",
     "intensity=extreme", "brightness=85", "audio-reactive=false",
     "restore-on-stop=true", "launch-at-login=false", "auto-start=true",
     "future-value=ignored"
   ].join("\n"))
   assert.equal(result.ok, true)
   assert.deepEqual(result.config, {
-    language: "system", backend: "portal-pipewire", mode: "game",
+    backend: "portal-pipewire", mode: "game",
     intensity: "extreme", brightness: 85, "audio-reactive": false,
     "restore-on-stop": true, "launch-at-login": false, "auto-start": true
   })
@@ -104,6 +106,24 @@ test("parses profile list markers, UUIDs, spaces, and empty output", () => {
     profiles: [{ id: "first-id", name: "Inactive first profile", active: false }]
   })
   assert.equal(Model.parseProfiles("malformed").ok, false)
+})
+
+test("parses discovered bridges and entertainment areas", () => {
+  assert.deepEqual(Model.parseBridges("001788fffe123456\t10.0.0.41\tOffice Bridge\n"), {
+    ok: true,
+    bridges: [{ id: "001788fffe123456", host: "10.0.0.41", name: "Office Bridge" }]
+  })
+  assert.deepEqual(Model.parseBridges("No bridges found."), { ok: true, bridges: [] })
+  assert.equal(Model.parseBridges("broken").ok, false)
+
+  assert.deepEqual(Model.parseAreas("* area-1\tPC\t3 lights\n  area-2\tTV\t5 lights\n"), {
+    ok: true,
+    areas: [
+      { id: "area-1", name: "PC", lights: 3, selected: true },
+      { id: "area-2", name: "TV", lights: 5, selected: false }
+    ]
+  })
+  assert.deepEqual(Model.parseAreas("No entertainment areas found."), { ok: true, areas: [] })
 })
 
 test("English and German expose identical localization keys", () => {
@@ -131,15 +151,22 @@ test("status state coverage keeps failures and setup distinct", () => {
 
 test("panel action availability prevents duplicate and unsafe actions", () => {
   assert.deepEqual(Model.panelActions(status("idle"), true, false), {
-    start: true, stop: false, mutate: true, setup: false
+    start: true, stop: false, mutate: true
   })
   assert.deepEqual(Model.panelActions(status("active"), true, false), {
-    start: false, stop: true, mutate: true, setup: false
+    start: false, stop: true, mutate: true
   })
   assert.deepEqual(Model.panelActions(status("idle"), true, true), {
-    start: false, stop: false, mutate: false, setup: false
+    start: false, stop: false, mutate: false
   })
   assert.deepEqual(Model.panelActions(status("idle", "needs_setup", false), true, false), {
-    start: false, stop: false, mutate: true, setup: true
+    start: false, stop: false, mutate: true
   })
+})
+
+test("service prefers the isolated user installation over conflicting PATH entries", () => {
+  const service = fs.readFileSync(path.join(__dirname, "..", "Service.qml"), "utf8")
+  assert.match(service, /PATH=.*\.local\/bin/)
+  assert.match(service, /cliCommand\(\["profile", "list"\]\)/)
+  assert.doesNotMatch(service, /command: \["lightsync"/)
 })
