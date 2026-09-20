@@ -12,7 +12,6 @@ Item {
   property var manifest: null
   property var status: null
   property var config: ({})
-  property var profiles: []
   property var bridges: []
   property var areas: []
   property bool bridgesLoaded: false
@@ -26,7 +25,7 @@ Item {
   readonly property string error: lastError || streamError
   readonly property bool watching: watcher.running
   readonly property bool actionRunning: actionProcess.running
-  readonly property bool refreshing: configProcess.running || profileProcess.running
+  readonly property bool refreshing: configProcess.running
   readonly property bool busy: actionRunning || setupProcess.running
   readonly property var strings: Model.strings(Qt.locale().name)
   readonly property string cliPath: (Quickshell.env("HOME") || "") + "/.local/bin"
@@ -59,7 +58,6 @@ Item {
       statusMessage = strings.refreshing
     }
     if (!configProcess.running) configProcess.running = true
-    if (!profileProcess.running) profileProcess.running = true
     return true
   }
 
@@ -101,21 +99,6 @@ Item {
   function setBrightness(value) {
     var next = Math.max(0, Math.min(100, Math.round(Number(value))))
     return setConfig("brightness", next)
-  }
-
-  function createProfile(name) {
-    var value = String(name || "").trim()
-    return value !== "" && runAction(["profile", "create", value])
-  }
-
-  function deleteProfile(id) {
-    var value = String(id || "").trim()
-    return value !== "" && runAction(["profile", "delete", value])
-  }
-
-  function activateProfile(id) {
-    var value = String(id || "").trim()
-    return value !== "" && runAction(["profile", "activate", value])
   }
 
   function runSetup(operation, args) {
@@ -227,22 +210,6 @@ Item {
       else {
         var result = Model.parseConfig(configOutput.text)
         if (result.ok) root.config = result.config
-        else root.lastError = root.strings.commandFailed
-      }
-      root.clearRefreshFeedback()
-    }
-  }
-
-  Process {
-    id: profileProcess
-    command: root.cliCommand(["profile", "list"])
-    stdout: StdioCollector { id: profileOutput; waitForEnd: true }
-    stderr: StdioCollector { id: profileError; waitForEnd: true }
-    onExited: function(exitCode) {
-      if (exitCode !== 0) root.lastError = Model.compactError(profileError.text || profileOutput.text, root.strings.commandFailed)
-      else {
-        var result = Model.parseProfiles(profileOutput.text)
-        if (result.ok) root.profiles = result.profiles
         else root.lastError = root.strings.commandFailed
       }
       root.clearRefreshFeedback()

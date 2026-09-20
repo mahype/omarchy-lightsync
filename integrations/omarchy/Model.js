@@ -19,12 +19,11 @@ var STRINGS = {
     moderate: "Moderate", high: "High", extreme: "Extreme",
     connection: "CONNECTION", bridge: "Bridge", area: "Entertainment area",
     connected: "Connected", notConfigured: "Not configured", discoverBridge: "Find Hue bridge",
+    setupRequired: "Connect a Hue Bridge before starting synchronization.", configureConnection: "Set up Hue connection",
     noBridges: "No Hue bridges found.", pair: "Pair", pressLink: "Press the Hue bridge button, then continue.",
     completePairing: "Continue pairing", refreshAreas: "Refresh areas", noAreas: "No Entertainment areas found.",
     select: "Select", selected: "Selected", forgetBridge: "Forget bridge", lights: "%1 lights",
-    profiles: "PROFILES", newProfile: "New profile name", create: "Create",
-    noProfiles: "No profiles yet.", activeBadge: "ACTIVE", activate: "Activate",
-    deleteLabel: "Delete", settings: "SETTINGS", captureBackend: "Capture backend",
+    settings: "SETTINGS", captureBackend: "Capture backend",
     portal: "ScreenCast portal", grim: "Grim", restoreOnStop: "Restore lights on stop",
     restoreOnStopHint: "Return lights to their previous state after synchronization.",
     autoStart: "Start sync with the daemon", autoStartHint: "Requires reusable portal permission.",
@@ -56,12 +55,11 @@ var STRINGS = {
     moderate: "Mittel", high: "Hoch", extreme: "Extrem",
     connection: "VERBINDUNG", bridge: "Bridge", area: "Entertainment-Bereich",
     connected: "Verbunden", notConfigured: "Nicht eingerichtet", discoverBridge: "Hue Bridge suchen",
+    setupRequired: "Verbinde zuerst eine Hue Bridge, um die Synchronisierung zu starten.", configureConnection: "Hue-Verbindung einrichten",
     noBridges: "Keine Hue Bridges gefunden.", pair: "Koppeln", pressLink: "Drücke die Taste auf der Hue Bridge und fahre dann fort.",
     completePairing: "Kopplung fortsetzen", refreshAreas: "Bereiche aktualisieren", noAreas: "Keine Entertainment-Bereiche gefunden.",
     select: "Auswählen", selected: "Ausgewählt", forgetBridge: "Bridge vergessen", lights: "%1 Lampen",
-    profiles: "PROFILE", newProfile: "Neuer Profilname", create: "Erstellen",
-    noProfiles: "Noch keine Profile.", activeBadge: "AKTIV", activate: "Aktivieren",
-    deleteLabel: "Löschen", settings: "EINSTELLUNGEN", captureBackend: "Aufnahme-Backend",
+    settings: "EINSTELLUNGEN", captureBackend: "Aufnahme-Backend",
     portal: "ScreenCast-Portal", grim: "Grim", restoreOnStop: "Lampen beim Stop wiederherstellen",
     restoreOnStopHint: "Setzt die Lampen nach der Synchronisierung auf ihren vorherigen Zustand zurück.",
     autoStart: "Sync mit dem Dienst starten", autoStartHint: "Benötigt eine wiederverwendbare Portal-Freigabe.",
@@ -110,21 +108,6 @@ function parseConfig(raw) {
     recognized++
   })
   return { ok: recognized > 0, config: config }
-}
-
-function parseProfiles(raw) {
-  var profiles = []
-  var source = String(raw || "").replace(/\r/g, "")
-  var text = source.trim()
-  if (text === "" || /^No profiles configured\.?$/i.test(text)) return { ok: true, profiles: profiles }
-  var invalid = false
-  source.replace(/\n+$/, "").split("\n").forEach(function(line) {
-    if (!line.trim()) return
-    var match = line.match(/^([* ])\s*([^\t]+)\t(.*)$/)
-    if (!match || !match[2].trim() || !match[3].trim()) { invalid = true; return }
-    profiles.push({ id: match[2].trim(), name: match[3].trim(), active: match[1] === "*" })
-  })
-  return { ok: !invalid, profiles: profiles }
 }
 
 function parseBridges(raw) {
@@ -198,7 +181,6 @@ function detail(doc) {
     if (components[i] && components[i].detail) return String(components[i].detail)
   var names = []
   if (doc.area && doc.area.name) names.push(String(doc.area.name))
-  if (doc.profile && doc.profile.name) names.push(String(doc.profile.name))
   return names.join(" · ")
 }
 
@@ -237,7 +219,7 @@ function streamStopped(exitCode, s) { return s.streamStopped.replace("%1", Strin
 
 if (typeof module !== "undefined") module.exports = {
   STRINGS: STRINGS, strings: strings, parse: parse, parseConfig: parseConfig,
-  parseProfiles: parseProfiles, parseBridges: parseBridges, parseAreas: parseAreas,
+  parseBridges: parseBridges, parseAreas: parseAreas,
   level: level, isRunning: isRunning, canStart: canStart,
   panelActions: panelActions, headline: headline, detail: detail, fps: fps,
   stateLabel: stateLabel, tooltip: tooltip, compactError: compactError,

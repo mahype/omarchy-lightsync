@@ -90,24 +90,6 @@ test("parses config show values and ignores unrelated output", () => {
   assert.equal(Model.parseConfig("noise only").ok, false)
 })
 
-test("parses profile list markers, UUIDs, spaces, and empty output", () => {
-  const raw = "* 01234567-89ab-cdef-0123-456789abcdef\tLiving Room\n"
-    + "  fedcba98-7654-3210-fedc-ba9876543210\tGames and films"
-  assert.deepEqual(Model.parseProfiles(raw), {
-    ok: true,
-    profiles: [
-      { id: "01234567-89ab-cdef-0123-456789abcdef", name: "Living Room", active: true },
-      { id: "fedcba98-7654-3210-fedc-ba9876543210", name: "Games and films", active: false }
-    ]
-  })
-  assert.deepEqual(Model.parseProfiles("No profiles configured."), { ok: true, profiles: [] })
-  assert.deepEqual(Model.parseProfiles("  first-id\tInactive first profile\n"), {
-    ok: true,
-    profiles: [{ id: "first-id", name: "Inactive first profile", active: false }]
-  })
-  assert.equal(Model.parseProfiles("malformed").ok, false)
-})
-
 test("parses discovered bridges and entertainment areas", () => {
   assert.deepEqual(Model.parseBridges("001788fffe123456\t10.0.0.41\tOffice Bridge\n"), {
     ok: true,
@@ -167,6 +149,6 @@ test("panel action availability prevents duplicate and unsafe actions", () => {
 test("service prefers the isolated user installation over conflicting PATH entries", () => {
   const service = fs.readFileSync(path.join(__dirname, "..", "Service.qml"), "utf8")
   assert.match(service, /PATH=.*\.local\/bin/)
-  assert.match(service, /cliCommand\(\["profile", "list"\]\)/)
+  assert.doesNotMatch(service, /profileProcess|\["profile"/)
   assert.doesNotMatch(service, /command: \["lightsync"/)
 })

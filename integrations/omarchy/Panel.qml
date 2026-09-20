@@ -18,7 +18,6 @@ Panel {
   readonly property var strings: Model.strings(Qt.locale().name)
   readonly property var status: service ? service.status : null
   readonly property var config: service ? service.config : ({})
-  readonly property var profiles: service ? service.profiles : []
   readonly property var bridges: service ? service.bridges : []
   readonly property var areas: service ? service.areas : []
   readonly property var actions: Model.panelActions(status, service ? service.installed : false,
@@ -28,7 +27,7 @@ Panel {
   readonly property color urgent: bar ? bar.urgent : Color.urgent
   readonly property color dim: Qt.darker(foreground, 1.55)
   readonly property string fontFamily: bar ? bar.fontFamily : Style.font.family
-  readonly property bool editing: profileField.activeFocus
+  readonly property bool editing: false
 
   function areaName() {
     var id = status && status.area ? String(status.area.id || "") : ""
@@ -44,13 +43,6 @@ Panel {
 
   function close() {
     controller.hide()
-  }
-
-  function createProfile() {
-    if (service && service.createProfile(profileField.text)) {
-      profileField.text = ""
-      keyCatcher.forceActiveFocus()
-    }
   }
 
   onOpenedChanged: if (opened) {
@@ -133,6 +125,33 @@ Panel {
               font.family: root.fontFamily
               font.pixelSize: Style.font.caption
               wrapMode: Text.WordWrap
+            }
+          }
+
+          BorderSurface {
+            visible: root.status && root.status.bridge.state !== "ready"
+            width: parent.width
+            implicitHeight: setupNotice.implicitHeight + Style.space(18)
+            color: "transparent"
+            borderSpec: Border.flat(root.urgent, 1)
+            radius: Style.cornerRadius
+            Column {
+              id: setupNotice
+              anchors.left: parent.left
+              anchors.right: parent.right
+              anchors.verticalCenter: parent.verticalCenter
+              anchors.margins: Style.space(9)
+              spacing: Style.space(7)
+              Text { width: parent.width; text: root.strings.setupRequired; color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.body; wrapMode: Text.WordWrap }
+              Button {
+                width: parent.width
+                text: root.strings.configureConnection
+                bordered: true
+                focusable: true
+                foreground: root.foreground
+                fontFamily: root.fontFamily
+                onClicked: panelFlick.contentY = Math.max(0, connectionSection.y - Style.space(20))
+              }
             }
           }
 
@@ -265,183 +284,6 @@ Panel {
 
           Column {
             width: parent.width
-            spacing: Style.space(8)
-            PanelSectionHeader { text: root.strings.connection; foreground: root.foreground; fontFamily: root.fontFamily }
-            BorderSurface {
-              width: parent.width
-              implicitHeight: connectionBody.implicitHeight + Style.space(20)
-              color: "transparent"
-              borderSpec: Border.flat(root.dim, 1)
-              radius: Style.cornerRadius
-              Column {
-                id: connectionBody
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.verticalCenter: parent.verticalCenter
-                anchors.margins: Style.space(10)
-                spacing: Style.space(7)
-                Text { text: root.strings.bridge + ": " + (root.status && root.status.bridge.state === "ready" ? root.strings.connected : root.strings.notConfigured); color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.body }
-                Text { text: root.strings.area + ": " + root.areaName(); color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.bodySmall; elide: Text.ElideRight; width: parent.width }
-
-                Button {
-                  visible: !root.status || root.status.bridge.state !== "ready"
-                  width: parent.width
-                  text: root.strings.discoverBridge
-                  bordered: true
-                  focusable: true
-                  enabled: root.service && !root.service.busy && (!root.status || root.status.bridge.state !== "pairing")
-                  foreground: root.foreground
-                  fontFamily: root.fontFamily
-                  onClicked: root.service.discoverBridges()
-                }
-                Repeater {
-                  model: root.bridges
-                  BorderSurface {
-                    required property var modelData
-                    width: connectionBody.width
-                    implicitHeight: bridgeRow.implicitHeight + Style.space(14)
-                    color: "transparent"
-                    borderSpec: Border.flat(root.dim, 1)
-                    radius: Style.cornerRadius
-                    Row {
-                      id: bridgeRow
-                      anchors.left: parent.left
-                      anchors.right: parent.right
-                      anchors.verticalCenter: parent.verticalCenter
-                      anchors.margins: Style.space(7)
-                      spacing: Style.space(7)
-                      Column {
-                        width: parent.width - pairButton.width - parent.spacing
-                        Text { width: parent.width; text: modelData.name || root.strings.bridge; color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.body; elide: Text.ElideRight }
-                        Text { width: parent.width; text: modelData.host; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption; elide: Text.ElideRight }
-                      }
-                      Button { id: pairButton; text: root.strings.pair; bordered: true; focusable: true; enabled: root.service && !root.service.busy; foreground: root.foreground; fontFamily: root.fontFamily; onClicked: root.service.useBridge(modelData) }
-                    }
-                  }
-                }
-                Text { visible: root.service && root.service.bridgesLoaded && root.bridges.length === 0; width: parent.width; text: root.strings.noBridges; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption; wrapMode: Text.WordWrap }
-
-                Text { visible: root.status && root.status.bridge.state === "pairing"; width: parent.width; text: root.strings.pressLink; color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.bodySmall; wrapMode: Text.WordWrap }
-                Button {
-                  visible: root.status && root.status.bridge.state === "pairing"
-                  width: parent.width
-                  text: root.strings.completePairing
-                  bordered: true
-                  focusable: true
-                  enabled: root.service && !root.service.busy && root.service.pendingBridgeId !== ""
-                  foreground: root.foreground
-                  fontFamily: root.fontFamily
-                  onClicked: root.service.completePairing()
-                }
-
-                Button {
-                  visible: root.status && root.status.bridge.state === "ready"
-                  width: parent.width
-                  text: root.strings.refreshAreas
-                  bordered: true
-                  focusable: true
-                  enabled: root.service && !root.service.busy
-                  foreground: root.foreground
-                  fontFamily: root.fontFamily
-                  onClicked: root.service.refreshAreas()
-                }
-                Repeater {
-                  model: root.areas
-                  Button {
-                    required property var modelData
-                    width: connectionBody.width
-                    text: modelData.name + " · " + root.strings.lights.replace("%1", String(modelData.lights))
-                    selected: modelData.selected
-                    bordered: true
-                    focusable: true
-                    enabled: root.service && !root.service.busy && !modelData.selected
-                    foreground: root.foreground
-                    fontFamily: root.fontFamily
-                    onClicked: root.service.selectArea(modelData.id)
-                  }
-                }
-                Text { visible: root.service && root.service.areasLoaded && root.areas.length === 0; width: parent.width; text: root.strings.noAreas; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption; wrapMode: Text.WordWrap }
-                Button {
-                  visible: root.status && ["ready", "unreachable"].indexOf(root.status.bridge.state) >= 0
-                  width: parent.width
-                  text: root.strings.forgetBridge
-                  bordered: true
-                  focusable: true
-                  enabled: root.service && !root.service.busy && !root.running
-                  foreground: root.urgent
-                  fontFamily: root.fontFamily
-                  onClicked: root.service.forgetBridge()
-                }
-              }
-            }
-          }
-
-          PanelSeparator { foreground: root.foreground }
-
-          Column {
-            width: parent.width
-            spacing: Style.space(8)
-            PanelSectionHeader { text: root.strings.profiles; foreground: root.foreground; fontFamily: root.fontFamily }
-            Row {
-              width: parent.width
-              spacing: Style.space(8)
-              TextField {
-                id: profileField
-                width: parent.width - createButton.width - parent.spacing
-                placeholderText: root.strings.newProfile
-                foreground: root.foreground
-                font.family: root.fontFamily
-                enabled: root.actions.mutate
-                onAccepted: root.createProfile()
-                Keys.onEscapePressed: { text = ""; keyCatcher.forceActiveFocus() }
-              }
-              Button {
-                id: createButton
-                text: root.strings.create
-                bordered: true
-                focusable: true
-                enabled: root.actions.mutate && profileField.text.trim() !== ""
-                foreground: root.foreground
-                fontFamily: root.fontFamily
-                onClicked: root.createProfile()
-              }
-            }
-            Text { visible: root.profiles.length === 0 && !(root.service && root.service.refreshing); width: parent.width; text: root.strings.noProfiles; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.body; horizontalAlignment: Text.AlignHCenter }
-            Repeater {
-              model: root.profiles
-              BorderSurface {
-                required property var modelData
-                width: parent.width
-                implicitHeight: profileBody.implicitHeight + Style.space(20)
-                color: "transparent"
-                borderSpec: Border.flat(modelData.active ? root.foreground : root.dim, 1)
-                radius: Style.cornerRadius
-                Column {
-                  id: profileBody
-                  anchors.left: parent.left
-                  anchors.right: parent.right
-                  anchors.verticalCenter: parent.verticalCenter
-                  anchors.margins: Style.space(10)
-                  spacing: Style.space(8)
-                  Row {
-                    width: parent.width
-                    Text { width: parent.width - badge.width; text: modelData.name; color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.title; font.bold: true; elide: Text.ElideRight }
-                    Text { id: badge; visible: modelData.active; text: root.strings.activeBadge; color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.caption; font.bold: true }
-                  }
-                  Row {
-                    spacing: Style.space(6)
-                    Button { text: root.strings.activate; bordered: true; focusable: true; enabled: root.actions.mutate && !modelData.active; foreground: root.foreground; fontFamily: root.fontFamily; onClicked: root.service.activateProfile(modelData.id) }
-                    Button { text: root.strings.deleteLabel; bordered: true; focusable: true; enabled: root.actions.mutate; foreground: root.urgent; fontFamily: root.fontFamily; onClicked: root.service.deleteProfile(modelData.id) }
-                  }
-                }
-              }
-            }
-          }
-
-          PanelSeparator { foreground: root.foreground }
-
-          Column {
-            width: parent.width
             spacing: Style.space(10)
             PanelSectionHeader { text: root.strings.settings; foreground: root.foreground; fontFamily: root.fontFamily }
             PanelSectionHeader { text: root.strings.captureBackend; foreground: root.foreground; fontFamily: root.fontFamily }
@@ -499,6 +341,120 @@ Panel {
             Text { width: parent.width; text: root.strings.capture + ": " + Model.stateLabel(root.status ? root.status.capture.state : "", root.strings); color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.bodySmall }
             Text { width: parent.width; text: root.strings.sync + ": " + Model.stateLabel(root.status ? root.status.sync.state : "", root.strings); color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.bodySmall }
             Text { width: parent.width; text: Model.fps(root.status, root.strings); color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption }
+          }
+
+          PanelSeparator { foreground: root.foreground }
+
+          Column {
+            id: connectionSection
+            width: parent.width
+            spacing: Style.space(8)
+            PanelSectionHeader { text: root.strings.connection; foreground: root.foreground; fontFamily: root.fontFamily }
+            BorderSurface {
+              width: parent.width
+              implicitHeight: connectionBody.implicitHeight + Style.space(20)
+              color: "transparent"
+              borderSpec: Border.flat(root.dim, 1)
+              radius: Style.cornerRadius
+              Column {
+                id: connectionBody
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.margins: Style.space(10)
+                spacing: Style.space(7)
+                Text { text: root.strings.bridge + ": " + (root.status && root.status.bridge.state === "ready" ? root.strings.connected : root.strings.notConfigured); color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.body }
+                Text { text: root.strings.area + ": " + root.areaName(); color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.bodySmall; elide: Text.ElideRight; width: parent.width }
+
+                Button {
+                  visible: !root.status || root.status.bridge.state !== "ready"
+                  width: parent.width
+                  text: root.strings.discoverBridge
+                  bordered: true
+                  focusable: true
+                  enabled: root.service && !root.service.busy && (!root.status || root.status.bridge.state !== "pairing")
+                  foreground: root.foreground
+                  fontFamily: root.fontFamily
+                  onClicked: root.service.discoverBridges()
+                }
+                Repeater {
+                  model: root.bridges
+                  BorderSurface {
+                    required property var modelData
+                    width: connectionBody.width
+                    implicitHeight: bridgeRow.implicitHeight + Style.space(14)
+                    color: "transparent"
+                    borderSpec: Border.flat(root.dim, 1)
+                    radius: Style.cornerRadius
+                    Row {
+                      id: bridgeRow
+                      anchors.left: parent.left
+                      anchors.right: parent.right
+                      anchors.verticalCenter: parent.verticalCenter
+                      anchors.margins: Style.space(7)
+                      spacing: Style.space(7)
+                      Column {
+                        width: parent.width - pairButton.width - parent.spacing
+                        Text { width: parent.width; text: modelData.name || root.strings.bridge; color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.body; elide: Text.ElideRight }
+                        Text { width: parent.width; text: modelData.host; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption; elide: Text.ElideRight }
+                      }
+                      Button { id: pairButton; text: root.strings.pair; bordered: true; focusable: true; enabled: root.service && !root.service.busy; foreground: root.foreground; fontFamily: root.fontFamily; onClicked: root.service.useBridge(modelData) }
+                    }
+                  }
+                }
+                Text { visible: root.service && root.service.bridgesLoaded && root.bridges.length === 0; width: parent.width; text: root.strings.noBridges; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption; wrapMode: Text.WordWrap }
+                Text { visible: root.status && root.status.bridge.state === "pairing"; width: parent.width; text: root.strings.pressLink; color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.bodySmall; wrapMode: Text.WordWrap }
+                Button {
+                  visible: root.status && root.status.bridge.state === "pairing"
+                  width: parent.width
+                  text: root.strings.completePairing
+                  bordered: true
+                  focusable: true
+                  enabled: root.service && !root.service.busy && root.service.pendingBridgeId !== ""
+                  foreground: root.foreground
+                  fontFamily: root.fontFamily
+                  onClicked: root.service.completePairing()
+                }
+                Button {
+                  visible: root.status && root.status.bridge.state === "ready"
+                  width: parent.width
+                  text: root.strings.refreshAreas
+                  bordered: true
+                  focusable: true
+                  enabled: root.service && !root.service.busy
+                  foreground: root.foreground
+                  fontFamily: root.fontFamily
+                  onClicked: root.service.refreshAreas()
+                }
+                Repeater {
+                  model: root.areas
+                  Button {
+                    required property var modelData
+                    width: connectionBody.width
+                    text: modelData.name + " · " + root.strings.lights.replace("%1", String(modelData.lights))
+                    selected: modelData.selected
+                    bordered: true
+                    focusable: true
+                    enabled: root.service && !root.service.busy && !modelData.selected
+                    foreground: root.foreground
+                    fontFamily: root.fontFamily
+                    onClicked: root.service.selectArea(modelData.id)
+                  }
+                }
+                Text { visible: root.service && root.service.areasLoaded && root.areas.length === 0; width: parent.width; text: root.strings.noAreas; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption; wrapMode: Text.WordWrap }
+                Button {
+                  visible: root.status && ["ready", "unreachable"].indexOf(root.status.bridge.state) >= 0
+                  width: parent.width
+                  text: root.strings.forgetBridge
+                  bordered: true
+                  focusable: true
+                  enabled: root.service && !root.service.busy && !root.running
+                  foreground: root.urgent
+                  fontFamily: root.fontFamily
+                  onClicked: root.service.forgetBridge()
+                }
+              }
+            }
           }
 
           Text {
