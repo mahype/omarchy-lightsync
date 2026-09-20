@@ -43,6 +43,11 @@ Item {
     status = doc
     installed = true
     streamError = ""
+    if (doc.bridge.state === "ready") {
+      bridges = []
+      bridgesLoaded = false
+      pendingBridgeId = ""
+    }
     if (becameReady) Qt.callLater(refreshAreas)
     return true
   }

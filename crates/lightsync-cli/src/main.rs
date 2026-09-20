@@ -1,5 +1,6 @@
 use std::io::{self, Write};
 use std::process::ExitCode;
+use std::time::Duration;
 
 use anyhow::{Context, Result, bail};
 use clap::{Args, Parser, Subcommand, ValueEnum};
@@ -150,9 +151,19 @@ async fn run(cli: Cli) -> Result<()> {
         return watch_status(json).await;
     }
 
-    let client = Client::connect()
+    let mut client = Client::connect()
         .await
         .context("cannot connect to lightsyncd; is the user service running?")?;
+    if matches!(
+        &cli.command,
+        Command::Sync {
+            command: SyncCommand::Start | SyncCommand::Toggle
+        }
+    ) {
+        // Portal selection is interactive and can legitimately take longer than
+        // the transport timeout used for non-interactive control requests.
+        client.set_io_timeout(Duration::from_secs(300));
+    }
 
     match cli.command {
         Command::Status(args) => show_status(&client, args.json).await,
