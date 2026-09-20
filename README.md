@@ -243,7 +243,7 @@ cargo fetch --locked
 cargo fmt --all -- --check
 cargo test --frozen --workspace --all-features
 cargo clippy --frozen --workspace --all-targets --all-features -- -D warnings
-node --test integrations/omarchy/tests
+node --test integrations/omarchy/tests/model.test.js
 ./test-install.sh
 omarchy plugin validate .
 ```
