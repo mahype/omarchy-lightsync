@@ -799,8 +799,10 @@ fn build_dashboard(app: &App, i18n: &I18n) -> DashboardWidgets {
     let game = gtk::ToggleButton::with_label(&i18n.text("mode-game"));
     let music = gtk::ToggleButton::with_label(&i18n.text("mode-music-unavailable"));
     let scene = gtk::ToggleButton::with_label(&i18n.text("mode-scene"));
-    for button in [&video, &game, &music, &scene] {
+    for button in [&game, &music, &scene] {
         button.set_group(Some(&video));
+    }
+    for button in [&video, &game, &music, &scene] {
         button.set_css_classes(&["mode-button"]);
         modes.append(button);
     }
