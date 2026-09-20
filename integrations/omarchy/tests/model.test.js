@@ -152,3 +152,10 @@ test("service prefers the isolated user installation over conflicting PATH entri
   assert.doesNotMatch(service, /profileProcess|\["profile"/)
   assert.doesNotMatch(service, /command: \["lightsync"/)
 })
+
+test("panel keeps setup visible without exposing profiles", () => {
+  const panel = fs.readFileSync(path.join(__dirname, "..", "Panel.qml"), "utf8")
+  assert.doesNotMatch(panel, /profileField|root\.profiles|activateProfile/)
+  assert.match(panel, /visible: root\.status && root\.status\.bridge\.state !== "ready"/)
+  assert.ok(panel.indexOf("id: connectionSection") > panel.indexOf("root.strings.diagnostics"))
+})
