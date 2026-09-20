@@ -58,6 +58,12 @@ Item {
     return true
   }
 
+  function clearRefreshFeedback() {
+    Qt.callLater(function() {
+      if (!root.refreshing && root.statusMessage === root.strings.refreshing) root.statusMessage = ""
+    })
+  }
+
   function runAction(args) {
     if (!installed || busy) return false
     lastError = ""
@@ -218,7 +224,7 @@ Item {
         if (result.ok) root.config = result.config
         else root.lastError = root.strings.commandFailed
       }
-      if (!root.refreshing && root.statusMessage === root.strings.refreshing) root.statusMessage = ""
+      root.clearRefreshFeedback()
     }
   }
 
@@ -234,7 +240,7 @@ Item {
         if (result.ok) root.profiles = result.profiles
         else root.lastError = root.strings.commandFailed
       }
-      if (!root.refreshing && root.statusMessage === root.strings.refreshing) root.statusMessage = ""
+      root.clearRefreshFeedback()
     }
   }
 
