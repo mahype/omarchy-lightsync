@@ -1,0 +1,14 @@
+[Desktop Entry]
+Type=Application
+Name=LightSync
+Name[de]=LightSync
+Comment=Synchronize Philips Hue Entertainment lights with your screen
+Comment[de]=Philips Hue Entertainment-Leuchten mit dem Bildschirm synchronisieren
+Exec=lightsync-gui
+Icon=io.github.mahype.omarchylightsync
+Terminal=false
+Categories=Utility;GTK;
+Keywords=Hue;lighting;screen;Entertainment;Ambilight;
+Keywords[de]=Hue;Beleuchtung;Bildschirm;Entertainment;Ambilight;
+StartupNotify=true
+StartupWMClass=io.github.mahype.omarchylightsync

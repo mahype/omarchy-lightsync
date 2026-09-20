@@ -1,0 +1,55 @@
+# Maintainer: Sven Wagener (mahype)
+# Release template: v0.1.0 is not public yet. After publishing the tag, set
+# LIGHTSYNC_V0_1_0_SHA256 to the verified GitHub source-archive SHA-256.
+# shellcheck disable=SC2034,SC2154,SC2164
+
+pkgname=lightsync
+pkgver=0.1.0
+pkgrel=1
+pkgdesc="Linux-native screen synchronization for Philips Hue Entertainment"
+arch=('x86_64' 'aarch64')
+url="https://github.com/mahype/omarchy-lightsync"
+license=('MIT')
+depends=('gcc-libs' 'glibc' 'gtk4' 'libadwaita' 'openssl' 'pipewire' 'xdg-desktop-portal')
+makedepends=('cargo' 'clang' 'pkgconf')
+optdepends=('gnome-keyring: Secret Service provider for Hue credentials'
+             'keepassxc: alternative Secret Service provider for Hue credentials'
+             'xdg-desktop-portal-hyprland: ScreenCast portal backend for Omarchy and Hyprland'
+             'grim: compatibility Wayland capture backend')
+source=("${pkgname}-${pkgver}.tar.gz::${url}/archive/refs/tags/v${pkgver}.tar.gz")
+: "${LIGHTSYNC_V0_1_0_SHA256:?v0.1.0 is unpublished; set its verified archive SHA-256 before using this release template}"
+sha256sums=("${LIGHTSYNC_V0_1_0_SHA256}")
+
+prepare() {
+  cd "omarchy-lightsync-${pkgver}"
+  test -f Cargo.lock
+  cargo fetch --locked --target "${CARCH}-unknown-linux-gnu"
+}
+
+build() {
+  cd "omarchy-lightsync-${pkgver}"
+  cargo build --frozen --release --workspace
+}
+
+check() {
+  cd "omarchy-lightsync-${pkgver}"
+  cargo test --frozen --workspace
+}
+
+package() {
+  cd "omarchy-lightsync-${pkgver}"
+
+  install -Dm755 target/release/lightsync "${pkgdir}/usr/bin/lightsync"
+  install -Dm755 target/release/lightsyncd "${pkgdir}/usr/bin/lightsyncd"
+  install -Dm755 target/release/lightsync-gui "${pkgdir}/usr/bin/lightsync-gui"
+  install -Dm644 data/io.github.mahype.omarchylightsync.desktop \
+    "${pkgdir}/usr/share/applications/io.github.mahype.omarchylightsync.desktop"
+  install -Dm644 data/io.github.mahype.omarchylightsync.metainfo.xml \
+    "${pkgdir}/usr/share/metainfo/io.github.mahype.omarchylightsync.metainfo.xml"
+  install -Dm644 data/icons/hicolor/scalable/apps/io.github.mahype.omarchylightsync.svg \
+    "${pkgdir}/usr/share/icons/hicolor/scalable/apps/io.github.mahype.omarchylightsync.svg"
+  install -Dm644 data/systemd/user/lightsync.service \
+    "${pkgdir}/usr/lib/systemd/user/lightsync.service"
+  install -Dm644 LICENSE "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
+  install -Dm644 README.md "${pkgdir}/usr/share/doc/${pkgname}/README.md"
+}
