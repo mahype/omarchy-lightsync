@@ -33,12 +33,12 @@ test -x "$HOME/.local/bin/lightsync"
 test -f "$HOME/.local/share/lightsync/source-install-v1"
 grep -Fx 'ExecStart=%h/.local/bin/lightsyncd' \
   "$HOME/.local/share/systemd/user/lightsync.service" >/dev/null
-mkdir -p "$HOME/.config/lightsync"
-printf 'preserve me\n' > "$HOME/.config/lightsync/config.toml"
+mkdir -p "$HOME/.config/omarchy-lightsync"
+printf 'preserve me\n' > "$HOME/.config/omarchy-lightsync/config.toml"
 
 "$repo_dir/install.sh" --uninstall
 test ! -e "$HOME/.local/bin/lightsync"
-test -f "$HOME/.config/lightsync/config.toml"
+test -f "$HOME/.config/omarchy-lightsync/config.toml"
 grep -F 'disable --now lightsync.service' "$HOME/systemctl.log" >/dev/null
 
 : > "$HOME/systemctl.log"

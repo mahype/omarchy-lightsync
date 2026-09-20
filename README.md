@@ -40,9 +40,11 @@ screen for a session; it cannot target a configured display ID.
 - `integrations/omarchy` provides one shared status-stream service and a bar
   widget. It does not poll once per monitor.
 
-Configuration is in `$XDG_CONFIG_HOME/lightsync` (normally
-`~/.config/lightsync`), runtime IPC is below `$XDG_RUNTIME_DIR`, and Hue secrets
-are stored through the session's Secret Service.
+Configuration is in `$XDG_CONFIG_HOME/omarchy-lightsync` (normally
+`~/.config/omarchy-lightsync`), runtime IPC is below
+`$XDG_RUNTIME_DIR/omarchy-lightsync`, and Hue secrets are stored through the
+session's Secret Service. These paths are separate from earlier LightSync
+prototypes.
 
 ## Dependencies
 
@@ -232,9 +234,9 @@ systemctl --user disable --now lightsync.service
 sudo pacman -Rns lightsync
 ```
 
-Both removal paths preserve `~/.config/lightsync`. Delete it and the LightSync
-entries in your keyring manually only when saved setup and credentials are no
-longer wanted.
+Both removal paths preserve `~/.config/omarchy-lightsync`. Delete it and the
+LightSync entries in your keyring manually only when saved setup and credentials
+are no longer wanted.
 
 ## Development
 

@@ -6,7 +6,7 @@ use anyhow::{Context, Result, bail};
 use lightsync_domain::{AppConfig, BridgeConfiguration};
 use tokio::io::AsyncWriteExt;
 
-const CONFIG_DIRECTORY: &str = "lightsync";
+const CONFIG_DIRECTORY: &str = "omarchy-lightsync";
 const CONFIG_FILE: &str = "config.toml";
 const PENDING_PAIRING_FILE: &str = "pending-pairing.toml";
 

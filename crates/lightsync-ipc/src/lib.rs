@@ -21,7 +21,7 @@ use tokio::sync::{Mutex, mpsc, watch};
 use tokio::task::JoinHandle;
 use tokio::time::{sleep, timeout};
 
-pub const SOCKET_DIRECTORY: &str = "lightsync";
+pub const SOCKET_DIRECTORY: &str = "omarchy-lightsync";
 pub const SOCKET_NAME: &str = "control.sock";
 pub const DEFAULT_MAX_RECORD_SIZE: usize = 1024 * 1024;
 pub const DEFAULT_IO_TIMEOUT: Duration = Duration::from_secs(10);
@@ -58,7 +58,7 @@ pub enum Error {
     Io(#[from] io::Error),
 }
 
-/// Resolves `$XDG_RUNTIME_DIR/lightsync/control.sock`.
+/// Resolves `$XDG_RUNTIME_DIR/omarchy-lightsync/control.sock`.
 pub fn runtime_socket_path() -> Result<PathBuf> {
     socket_path_for_runtime_dir(env::var_os("XDG_RUNTIME_DIR").as_deref())
 }
