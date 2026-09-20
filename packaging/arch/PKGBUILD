@@ -1,4 +1,5 @@
 # Maintainer: Sven Wagener (mahype)
+# shellcheck shell=bash
 # Release template: v0.1.0 is not public yet. After publishing the tag, set
 # LIGHTSYNC_V0_1_0_SHA256 to the verified GitHub source-archive SHA-256.
 # shellcheck disable=SC2034,SC2154,SC2164

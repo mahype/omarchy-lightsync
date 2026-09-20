@@ -11,7 +11,7 @@ case ${1:-} in
   "") ;;
   --uninstall) mode=uninstall ;;
   -h|--help)
-    printf 'Usage: %s [--uninstall]\nInstalls only to $HOME/.local.\n' "$0"
+    printf 'Usage: %s [--uninstall]\nInstalls only to the current user home under .local.\n' "$0"
     exit 0
     ;;
   *) printf 'Unknown option: %s\n' "$1" >&2; exit 2 ;;

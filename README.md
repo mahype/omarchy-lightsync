@@ -202,12 +202,13 @@ repository identity. This is intentionally distinct from the lowercase GUI
 desktop/AppStream ID `io.github.mahype.omarchylightsync`.
 
 Omarchy plugins are unsandboxed QML in the shell process. This plugin only runs
-the installed CLI status stream, starts or stops sync after a right click, and
-launches/focuses the GUI after a left click. It does not build or install
-LightSync, start the daemon, begin capture on load, request elevated privileges,
-or use repository hooks. The tooltip distinguishes a missing package, required
-setup, daemon errors, idle state, and active sync. `showWhenIdle` only hides the
-idle widget; errors and active sync stay visible.
+the installed CLI status stream, opens its anchored controls panel after a left
+click, and starts or stops sync after a right click. The panel links to the full
+GTK application for setup and advanced controls. The plugin does not build or
+install LightSync, start the daemon, begin capture on load, request elevated
+privileges, or use repository hooks. The tooltip distinguishes a missing
+package, required setup, daemon errors, idle state, and active sync.
+`showWhenIdle` only hides the idle widget; errors and active sync stay visible.
 
 Remove only the plugin with:
 

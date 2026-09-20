@@ -136,10 +136,10 @@ impl App {
     fn new(application: &adw::Application, worker: Worker) -> Self {
         let window = adw::ApplicationWindow::builder()
             .application(application)
-            .default_width(960)
-            .default_height(700)
-            .width_request(480)
-            .height_request(620)
+            .default_width(560)
+            .default_height(760)
+            .width_request(360)
+            .height_request(480)
             .build();
         let app = Self(Rc::new(AppInner {
             window,
@@ -620,12 +620,13 @@ impl App {
 
 fn build_ui(app: &App, i18n: &I18n) -> (gtk::Box, Ui) {
     let root = gtk::Box::new(gtk::Orientation::Vertical, 0);
-    let header = gtk::Box::new(gtk::Orientation::Horizontal, 14);
-    header.set_css_classes(&["atmospheric-header"]);
-    header.set_margin_start(24);
-    header.set_margin_end(24);
-    header.set_margin_top(18);
-    header.set_margin_bottom(18);
+    let header = gtk::Box::new(gtk::Orientation::Vertical, 10);
+    header.set_css_classes(&["utility-header"]);
+    header.set_margin_start(16);
+    header.set_margin_end(16);
+    header.set_margin_top(14);
+    header.set_margin_bottom(12);
+    let hero = gtk::Box::new(gtk::Orientation::Horizontal, 10);
     let mark = gtk::Image::from_icon_name("display-brightness-symbolic");
     mark.set_css_classes(&["sync-mark"]);
     mark.set_accessible_role(gtk::AccessibleRole::Presentation);
@@ -640,11 +641,14 @@ fn build_ui(app: &App, i18n: &I18n) -> (gtk::Box, Ui) {
     brand.append(&title);
     brand.append(&tagline);
     let service = gtk::Label::new(None);
-    service.set_css_classes(&["status-chip"]);
-    header.append(&mark);
-    header.append(&brand);
+    service.set_css_classes(&["status-label"]);
+    service.set_halign(gtk::Align::Fill);
+    service.set_xalign(0.0);
+    service.set_wrap(true);
+    hero.append(&mark);
+    hero.append(&brand);
+    header.append(&hero);
     header.append(&service);
-    root.append(&header);
 
     let stack = gtk::Stack::builder()
         .hexpand(true)
@@ -666,11 +670,6 @@ fn build_ui(app: &App, i18n: &I18n) -> (gtk::Box, Ui) {
         &i18n.text("nav-diagnostics"),
     );
 
-    let sidebar = gtk::StackSidebar::builder()
-        .stack(&stack)
-        .width_request(168)
-        .build();
-    sidebar.set_css_classes(&["navigation-sidebar"]);
     let navigation_labels = [
         i18n.text("nav-sync"),
         i18n.text("nav-setup"),
@@ -680,10 +679,11 @@ fn build_ui(app: &App, i18n: &I18n) -> (gtk::Box, Ui) {
     ];
     let navigation_refs: Vec<&str> = navigation_labels.iter().map(String::as_str).collect();
     let compact_navigation = gtk::DropDown::from_strings(&navigation_refs);
-    compact_navigation.set_visible(false);
-    compact_navigation.set_valign(gtk::Align::Center);
+    compact_navigation.set_hexpand(true);
+    compact_navigation.set_css_classes(&["navigation-picker"]);
     compact_navigation.set_tooltip_text(Some(&i18n.text("nav-sync")));
-    header.insert_child_after(&compact_navigation, Some(&brand));
+    header.append(&compact_navigation);
+    root.append(&header);
     {
         let stack = stack.clone();
         compact_navigation.connect_selected_notify(move |navigation| {
@@ -707,11 +707,9 @@ fn build_ui(app: &App, i18n: &I18n) -> (gtk::Box, Ui) {
     }
     let narrow = adw::Breakpoint::new(adw::BreakpointCondition::new_length(
         adw::BreakpointConditionLengthType::MaxWidth,
-        720.0,
+        640.0,
         adw::LengthUnit::Sp,
     ));
-    narrow.add_setter(&sidebar, "visible", Some(&false.to_value()));
-    narrow.add_setter(&compact_navigation, "visible", Some(&true.to_value()));
     narrow.add_setter(
         &dashboard.mode_row,
         "orientation",
@@ -723,10 +721,7 @@ fn build_ui(app: &App, i18n: &I18n) -> (gtk::Box, Ui) {
         Some(&gtk::Orientation::Vertical.to_value()),
     );
     app.0.window.add_breakpoint(narrow);
-    let content = gtk::Box::new(gtk::Orientation::Horizontal, 0);
-    content.append(&sidebar);
-    content.append(&stack);
-    root.append(&content);
+    root.append(&stack);
 
     (
         root,
@@ -840,14 +835,14 @@ fn build_dashboard(app: &App, i18n: &I18n) -> DashboardWidgets {
     content.append(&controls);
 
     let action = gtk::Button::with_label(&i18n.text("action-start"));
-    action.set_css_classes(&["suggested-action", "pill", "sync-action"]);
-    action.set_halign(gtk::Align::Center);
-    action.set_size_request(220, 58);
+    action.set_css_classes(&["suggested-action", "sync-action"]);
+    action.set_halign(gtk::Align::Fill);
     content.append(&action);
     let error = gtk::Label::new(None);
     error.set_wrap(true);
-    error.set_justify(gtk::Justification::Center);
-    error.set_css_classes(&["error", "caption"]);
+    error.set_halign(gtk::Align::Fill);
+    error.set_xalign(0.0);
+    error.set_css_classes(&["error", "caption", "feedback-surface"]);
     content.append(&error);
     let privacy = gtk::Label::new(Some(&i18n.text("privacy-note")));
     privacy.set_wrap(true);
@@ -1014,10 +1009,8 @@ fn build_profiles(app: &App, i18n: &I18n) -> ProfileWidgets {
     row.append(&create);
     create_card.append(&row);
     content.append(&create_card);
-    let profile_card = card();
     let list = list_box();
-    profile_card.append(&list);
-    content.append(&profile_card);
+    content.append(&list);
     let app_clone = app.clone();
     let entry_for_create = entry.clone();
     create.connect_clicked(move |_| {
@@ -1325,7 +1318,7 @@ fn render_profiles(app: &App, i18n: &I18n, ui: &Ui, model: &Model) {
         ui.profiles.append(&plain_row(&i18n.text("profiles-empty")));
     }
     for profile in &config.profiles {
-        let row = gtk::Box::new(gtk::Orientation::Horizontal, 8);
+        let row = gtk::Box::new(gtk::Orientation::Vertical, 8);
         row.set_margin_top(8);
         row.set_margin_bottom(8);
         row.set_margin_start(10);
@@ -1333,6 +1326,7 @@ fn render_profiles(app: &App, i18n: &I18n, ui: &Ui, model: &Model) {
         let label = gtk::Label::new(Some(&profile.name));
         label.set_hexpand(true);
         label.set_halign(gtk::Align::Start);
+        label.set_wrap(true);
         let active = config.active_profile == Some(profile.id);
         let activate =
             gtk::Button::with_label(&i18n.text(if active { "active" } else { "action-activate" }));
@@ -1381,9 +1375,11 @@ fn render_profiles(app: &App, i18n: &I18n, ui: &Ui, model: &Model) {
             });
             dialog.present(Some(&app_delete.0.window));
         });
+        let actions = gtk::Box::new(gtk::Orientation::Horizontal, 8);
+        actions.append(&activate);
+        actions.append(&delete);
         row.append(&label);
-        row.append(&activate);
-        row.append(&delete);
+        row.append(&actions);
         ui.profile_actions
             .borrow_mut()
             .push((activate, delete, active));
@@ -1392,13 +1388,13 @@ fn render_profiles(app: &App, i18n: &I18n, ui: &Ui, model: &Model) {
 }
 
 fn page_content(i18n: &I18n, title_id: &str, subtitle_id: &str) -> gtk::Box {
-    let content = gtk::Box::new(gtk::Orientation::Vertical, 16);
-    content.set_margin_top(24);
-    content.set_margin_bottom(28);
-    content.set_margin_start(24);
-    content.set_margin_end(24);
+    let content = gtk::Box::new(gtk::Orientation::Vertical, 12);
+    content.set_margin_top(16);
+    content.set_margin_bottom(18);
+    content.set_margin_start(16);
+    content.set_margin_end(16);
     let title = gtk::Label::new(Some(&i18n.text(title_id)));
-    title.set_css_classes(&["title-1"]);
+    title.set_css_classes(&["title-2"]);
     title.set_halign(gtk::Align::Start);
     let subtitle = gtk::Label::new(Some(&i18n.text(subtitle_id)));
     subtitle.set_wrap(true);
@@ -1410,20 +1406,21 @@ fn page_content(i18n: &I18n, title_id: &str, subtitle_id: &str) -> gtk::Box {
 }
 
 fn scroll_page(content: &gtk::Box) -> gtk::ScrolledWindow {
+    let clamp = adw::Clamp::builder()
+        .maximum_size(680)
+        .tightening_threshold(560)
+        .child(content)
+        .build();
     gtk::ScrolledWindow::builder()
         .hscrollbar_policy(gtk::PolicyType::Never)
-        .child(content)
+        .child(&clamp)
         .build()
 }
 
 fn card() -> gtk::Box {
-    let card = gtk::Box::new(gtk::Orientation::Vertical, 10);
-    card.set_css_classes(&["card"]);
-    card.set_margin_top(2);
-    card.set_margin_bottom(2);
-    card.set_margin_start(2);
-    card.set_margin_end(2);
-    card
+    let section = gtk::Box::new(gtk::Orientation::Vertical, 8);
+    section.set_css_classes(&["section-surface"]);
+    section
 }
 
 fn section_label(i18n: &I18n, id: &str) -> gtk::Label {
@@ -1519,13 +1516,14 @@ fn plain_row(text: &str) -> gtk::Label {
 fn install_css() {
     let provider = gtk::CssProvider::new();
     provider.load_from_string(
-        ".atmospheric-header { background: linear-gradient(110deg, alpha(@accent_bg_color, .28), alpha(#6b4cff, .16), transparent); border-bottom: 1px solid alpha(@accent_color, .2); }\n\
-         .sync-mark { font-size: 30px; color: @accent_color; }\n\
-         .status-chip { padding: 6px 12px; border-radius: 999px; background: alpha(@accent_bg_color, .16); }\n\
-         .card { padding: 18px; border-radius: 14px; background: alpha(@card_bg_color, .92); box-shadow: 0 1px 3px alpha(black, .16); }\n\
-         .sync-action { font-size: 17px; font-weight: 700; margin-top: 4px; }\n\
-         .mode-button { padding: 9px 6px; }\n\
-         .navigation-sidebar { border-right: 1px solid alpha(@borders, .55); }",
+        ".utility-header { border-bottom: 1px solid alpha(@window_fg_color, .18); }\n\
+         .sync-mark { font-size: 26px; color: @window_fg_color; }\n\
+         .status-label { padding: 3px 8px; border: 1px solid alpha(@window_fg_color, .24); border-radius: 6px; color: alpha(@window_fg_color, .72); font-size: .9em; }\n\
+         .navigation-picker { background: transparent; }\n\
+         .section-surface { padding: 12px; border: 1px solid alpha(@window_fg_color, .18); border-radius: 8px; background: transparent; }\n\
+         .feedback-surface { padding: 8px 10px; border: 1px solid alpha(@error_color, .65); border-radius: 6px; background: transparent; }\n\
+         .sync-action { font-weight: 600; margin-top: 2px; }\n\
+         .mode-button { padding: 6px; }",
     );
     gtk::style_context_add_provider_for_display(
         &gtk::gdk::Display::default().expect("GTK display"),

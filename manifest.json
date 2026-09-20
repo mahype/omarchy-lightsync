@@ -7,6 +7,7 @@
   "license": "MIT",
   "homepage": "https://github.com/mahype/omarchy-lightsync",
   "description": "Shows LightSync's Philips Hue Entertainment synchronization state in the Omarchy bar. LightSync must be installed separately; this plugin never installs software or starts screen capture on its own.",
+  "keepLoaded": true,
   "kinds": [
     "service",
     "bar-widget"
@@ -17,7 +18,7 @@
   },
   "barWidget": {
     "displayName": "LightSync",
-    "description": "Hue Entertainment sync state. Left click opens LightSync; right click explicitly starts or stops synchronization.",
+    "description": "Hue Entertainment controls. Left click opens the panel; right click explicitly starts or stops synchronization.",
     "category": "System",
     "aliases": [
       "hue",
