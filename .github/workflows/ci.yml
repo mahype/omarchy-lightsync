@@ -13,6 +13,10 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
       - name: Install validators
         run: sudo apt-get update && sudo apt-get install -y jq shellcheck
 
@@ -23,7 +27,7 @@ jobs:
           test "$(jq -r .id manifest.json)" = "io.github.mahype.omarchy-light-sync-hue"
 
       - name: Test
-        run: node --test tests/
+        run: node --test tests/*.test.js
 
       - name: Check stream helper
         run: |
