@@ -8,9 +8,9 @@ receives security fixes.
 ## Reporting a vulnerability
 
 Do not open a public issue for a suspected vulnerability. Use GitHub's private
-security advisory flow for `mahype/omarchy-lightsync-hue`:
+security advisory flow for `mahype/omarchy-light-sync-hue`:
 
-<https://github.com/mahype/omarchy-lightsync-hue/security/advisories/new>
+<https://github.com/mahype/omarchy-light-sync-hue/security/advisories/new>
 
 Include the affected version or commit, impact, reproduction steps, and any
 suggested mitigation. Remove Hue credentials, local addresses, captured image
@@ -36,4 +36,4 @@ capture, local network traffic and Hue credentials:
   authorizes Entertainment streaming to the bridge on the local network.
 
 General bugs and feature requests that do not have security impact may be filed
-at <https://github.com/mahype/omarchy-lightsync-hue/issues>.
+at <https://github.com/mahype/omarchy-light-sync-hue/issues>.

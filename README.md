@@ -4,7 +4,7 @@ Synchronizes a Philips Hue Entertainment area with your screen, like an
 ambilight, straight from the Omarchy bar. The plugin runs entirely inside the
 Omarchy shell: no daemon, no build step, no extra packages and no cloud.
 
-LightSync does not bypass DRM or HDCP. Protected video may be black in a
+Light Sync does not bypass DRM or HDCP. Protected video may be black in a
 screen capture and therefore cannot drive the lights.
 
 ## Features
@@ -33,7 +33,7 @@ and `avahi-browse`.
 ## Install
 
 ```sh
-omarchy plugin add https://github.com/mahype/omarchy-lightsync-hue.git --enable
+omarchy plugin add https://github.com/mahype/omarchy-light-sync-hue.git --enable
 ```
 
 Then click the light bulb in the bar:
@@ -45,13 +45,13 @@ Then click the light bulb in the bar:
 
 ## Keyboard and scripting
 
-The widget registers the IPC target `io.github.mahype.omarchy-lightsync-hue`:
+The widget registers the IPC target `io.github.mahype.omarchy-light-sync-hue`:
 
 ```sh
-omarchy-shell io.github.mahype.omarchy-lightsync-hue toggleSync
-omarchy-shell io.github.mahype.omarchy-lightsync-hue start
-omarchy-shell io.github.mahype.omarchy-lightsync-hue stop
-omarchy-shell io.github.mahype.omarchy-lightsync-hue status   # JSON
+omarchy-shell io.github.mahype.omarchy-light-sync-hue toggleSync
+omarchy-shell io.github.mahype.omarchy-light-sync-hue start
+omarchy-shell io.github.mahype.omarchy-light-sync-hue stop
+omarchy-shell io.github.mahype.omarchy-light-sync-hue status   # JSON
 ```
 
 `open`, `close`, `toggle` and `refresh` control the panel.
@@ -64,8 +64,8 @@ omarchy-shell io.github.mahype.omarchy-lightsync-hue status   # JSON
 | Color processing | `SyncEngine.js`: sRGB to linear light, per-channel area sampling, exposure, black cutoff and attack/release smoothing. |
 | Bridge API | `curl`, verified against Signify's Hue root certificates in `certs/` with the bridge ID as TLS name. The request, including the application key, is passed on stdin (`curl -K -`), never on the command line. |
 | Streaming | `tools/hue-stream.sh`: HueStream v2 frames over DTLS 1.2 with PSK (`PSK-AES128-GCM-SHA256`) via `openssl s_client`. |
-| Credentials | Secret Service through `secret-tool` (`service=io.github.mahype.omarchy-lightsync-hue`, `bridge=<bridge id>`). |
-| Settings | `~/.config/omarchy-lightsync-hue/config.json` (no secrets). |
+| Credentials | Secret Service through `secret-tool` (`service=io.github.mahype.omarchy-light-sync-hue`, `bridge=<bridge id>`). |
+| Settings | `~/.config/omarchy-light-sync-hue/config.json` (no secrets). |
 
 Screen capture only runs while synchronization is active; loading the plugin
 never starts capture or streaming. If the shell exits during a sync, the
@@ -76,7 +76,7 @@ leftover session of this plugin, but never a session of another app.
 
 | What | Where |
 |---|---|
-| Bridge ID, address, area, settings | `~/.config/omarchy-lightsync-hue/config.json` |
+| Bridge ID, address, area, settings | `~/.config/omarchy-light-sync-hue/config.json` |
 | Hue application key and Entertainment client key | Secret Service |
 | Hue bridge (HTTPS 443, DTLS 2100) | your local network |
 | `discovery.meethue.com` | only when mDNS finds no bridge |
@@ -84,12 +84,12 @@ leftover session of this plugin, but never a session of another app.
 ## Remove
 
 ```sh
-secret-tool clear service io.github.mahype.omarchy-lightsync-hue
-rm -r ~/.config/omarchy-lightsync-hue
-omarchy plugin remove io.github.mahype.omarchy-lightsync-hue
+secret-tool clear service io.github.mahype.omarchy-light-sync-hue
+rm -r ~/.config/omarchy-light-sync-hue
+omarchy plugin remove io.github.mahype.omarchy-light-sync-hue
 ```
 
-The bridge keeps a registration entry named `omarchy-lightsync-hue#desktop`;
+The bridge keeps a registration entry named `omarchy-light-sync-hue#desktop`;
 remove it in the Hue app if you like.
 
 ## Development
@@ -101,7 +101,7 @@ omarchy plugin validate .
 ```
 
 For live testing, symlink the checkout to
-`~/.config/omarchy/plugins/io.github.mahype.omarchy-lightsync-hue`. Changes to
+`~/.config/omarchy/plugins/io.github.mahype.omarchy-light-sync-hue`. Changes to
 `Service.qml` need `omarchy restart shell` because the service is kept loaded.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md).

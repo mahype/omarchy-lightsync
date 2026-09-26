@@ -4,7 +4,7 @@
 // Every HTTPS request is verified against Signify's Hue root certificates with
 // the bridge ID as TLS name, so the bridge address is only used to resolve it.
 
-var DEVICE_TYPE = "omarchy-lightsync-hue#desktop"
+var DEVICE_TYPE = "omarchy-light-sync-hue#desktop"
 var DISCOVERY_URL = "https://discovery.meethue.com/"
 var ENTERTAINMENT_PORT = 2100
 

@@ -20,7 +20,7 @@ jobs:
         run: |
           jq -e . manifest.json >/dev/null
           jq -r '.entryPoints[]' manifest.json | while IFS= read -r path; do test -f "$path"; done
-          test "$(jq -r .id manifest.json)" = "io.github.mahype.omarchy-lightsync-hue"
+          test "$(jq -r .id manifest.json)" = "io.github.mahype.omarchy-light-sync-hue"
 
       - name: Test
         run: node --test tests/

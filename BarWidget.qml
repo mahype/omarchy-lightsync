@@ -7,7 +7,7 @@ import "Model.js" as Model
 
 BarWidget {
   id: root
-  moduleName: "io.github.mahype.omarchy-lightsync-hue"
+  moduleName: "io.github.mahype.omarchy-light-sync-hue"
 
   readonly property var service: bar && bar.shell && typeof bar.shell.serviceFor === "function"
     ? bar.shell.serviceFor(moduleName) : null

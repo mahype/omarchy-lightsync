@@ -7,7 +7,7 @@ import "Model.js" as Model
 
 Panel {
   id: root
-  moduleName: "io.github.mahype.omarchy-lightsync-hue"
+  moduleName: "io.github.mahype.omarchy-light-sync-hue"
   ipcTarget: moduleName
   manageIpc: false
 

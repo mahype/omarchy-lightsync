@@ -21,8 +21,8 @@ Item {
   property var shell: null
   property var manifest: null
 
-  readonly property string secretService: "io.github.mahype.omarchy-lightsync-hue"
-  readonly property string configDir: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/omarchy-lightsync-hue"
+  readonly property string secretService: "io.github.mahype.omarchy-light-sync-hue"
+  readonly property string configDir: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/omarchy-light-sync-hue"
   readonly property string configPath: configDir + "/config.json"
   readonly property string caFile: localPath("certs/hue-ca-bundle.pem")
   readonly property string streamTool: localPath("tools/hue-stream.sh")

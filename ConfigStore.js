@@ -1,4 +1,4 @@
-// Persisted settings in ~/.config/omarchy-lightsync-hue/config.json.
+// Persisted settings in ~/.config/omarchy-light-sync-hue/config.json.
 // Hue credentials never go here; they live in the Secret Service.
 
 var VERSION = 1

@@ -23,7 +23,7 @@ PanelWindow {
   color: "transparent"
   exclusionMode: ExclusionMode.Ignore
   WlrLayershell.layer: WlrLayer.Background
-  WlrLayershell.namespace: "omarchy-lightsync-hue-capture"
+  WlrLayershell.namespace: "omarchy-light-sync-hue-capture"
   mask: Region {}
 
   ScreencopyView {

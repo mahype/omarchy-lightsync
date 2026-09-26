@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
-  "id": "io.github.mahype.omarchy-lightsync-hue",
+  "id": "io.github.mahype.omarchy-light-sync-hue",
   "name": "Omarchy Light Sync for Hue",
   "version": "0.2.0",
   "author": "Sven Wagener",
   "license": "MIT",
-  "homepage": "https://github.com/mahype/omarchy-lightsync-hue",
+  "homepage": "https://github.com/mahype/omarchy-light-sync-hue",
   "description": "Synchronizes Philips Hue Entertainment areas with your screen, like an ambilight. Runs entirely inside the Omarchy shell: no daemon, no extra packages, no cloud. Screen capture only starts when you start synchronization.",
   "keepLoaded": true,
   "kinds": [
@@ -26,7 +26,8 @@
       "ambilight",
       "entertainment",
       "screen sync",
-      "lightsync"
+      "lightsync",
+      "light sync"
     ],
     "allowMultiple": false,
     "defaultSection": "center",
