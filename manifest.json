@@ -1,34 +1,35 @@
 {
   "schemaVersion": 1,
-  "id": "io.github.mahype.omarchy-lightsync",
-  "name": "LightSync",
-  "version": "0.1.0",
+  "id": "io.github.mahype.omarchy-lightsync-hue",
+  "name": "Omarchy Light Sync for Hue",
+  "version": "0.2.0",
   "author": "Sven Wagener",
   "license": "MIT",
-  "homepage": "https://github.com/mahype/omarchy-lightsync",
-  "description": "Shows LightSync's Philips Hue Entertainment synchronization state in the Omarchy bar. LightSync must be installed separately; this plugin never installs software or starts screen capture on its own.",
+  "homepage": "https://github.com/mahype/omarchy-lightsync-hue",
+  "description": "Synchronizes Philips Hue Entertainment areas with your screen, like an ambilight. Runs entirely inside the Omarchy shell: no daemon, no extra packages, no cloud. Screen capture only starts when you start synchronization.",
   "keepLoaded": true,
   "kinds": [
     "service",
     "bar-widget"
   ],
   "entryPoints": {
-    "service": "integrations/omarchy/Service.qml",
-    "barWidget": "integrations/omarchy/BarWidget.qml"
+    "service": "Service.qml",
+    "barWidget": "BarWidget.qml"
   },
   "barWidget": {
-    "displayName": "LightSync",
-    "description": "Hue Entertainment controls. Left click opens the panel; right click explicitly starts or stops synchronization.",
-    "category": "System",
+    "displayName": "Light Sync for Hue",
+    "description": "Hue Entertainment screen sync. Left click opens the panel; right click starts or stops synchronization.",
+    "category": "Home",
     "aliases": [
       "hue",
       "lights",
       "ambilight",
       "entertainment",
-      "screen sync"
+      "screen sync",
+      "lightsync"
     ],
     "allowMultiple": false,
-    "defaultSection": "right",
+    "defaultSection": "center",
     "defaults": {
       "showWhenIdle": true
     },

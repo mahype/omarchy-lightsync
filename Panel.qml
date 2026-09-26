@@ -7,7 +7,7 @@ import "Model.js" as Model
 
 Panel {
   id: root
-  moduleName: "io.github.mahype.omarchy-lightsync"
+  moduleName: "io.github.mahype.omarchy-lightsync-hue"
   ipcTarget: moduleName
   manageIpc: false
 
@@ -16,13 +16,13 @@ Panel {
   property var service: null
   readonly property var barIdentity: hostWidget || root
   readonly property var strings: Model.strings(Qt.locale().name)
-  readonly property var status: service ? service.status : null
   readonly property var config: service ? service.config : ({})
   readonly property var bridges: service ? service.bridges : []
   readonly property var areas: service ? service.areas : []
-  readonly property var actions: Model.panelActions(status, service ? service.installed : false,
-    service ? service.busy : false)
-  readonly property bool running: Model.isRunning(status)
+  readonly property var screens: Quickshell.screens
+  readonly property bool running: Model.isRunning(service)
+  readonly property bool idle: service ? service.syncState === "idle" : false
+  readonly property bool connected: service ? service.bridge !== null && service.paired : false
   readonly property color foreground: bar ? bar.foreground : Color.foreground
   readonly property color urgent: bar ? bar.urgent : Color.urgent
   readonly property color dim: Qt.darker(foreground, 1.55)
@@ -30,9 +30,9 @@ Panel {
   readonly property bool editing: false
 
   function areaName() {
-    var id = status && status.area ? String(status.area.id || "") : ""
-    for (var i = 0; i < areas.length; i++) if (String(areas[i].id) === id) return areas[i].name
-    return id || strings.notConfigured
+    var id = config.area || ""
+    for (var i = 0; i < areas.length; i++) if (areas[i].id === id) return areas[i].name
+    return id ? "…" : strings.notConfigured
   }
 
   function open() {
@@ -93,13 +93,13 @@ Panel {
           PanelHero {
             width: parent.width
             title: root.strings.title
-            meta: Model.headline(root.status, root.service ? root.service.installed : false, root.strings)
-            detail: Model.fps(root.status, root.strings)
+            meta: Model.headline(root.service, root.strings)
+            detail: Model.fps(root.service, root.strings)
             foreground: root.foreground
             fontFamily: root.fontFamily
             iconComponent: Component {
               Text {
-                text: "󰌵"
+                text: "󱍖"
                 color: root.foreground
                 font.family: root.fontFamily
                 font.pixelSize: Style.font.display
@@ -129,7 +129,7 @@ Panel {
           }
 
           BorderSurface {
-            visible: root.status && root.status.bridge.state !== "ready"
+            visible: root.service && root.service.configLoaded && !Model.isReady(root.service)
             width: parent.width
             implicitHeight: setupNotice.implicitHeight + Style.space(18)
             color: "transparent"
@@ -161,10 +161,10 @@ Panel {
             iconText: root.running ? "󰓛" : "󰐊"
             bordered: true
             focusable: true
-            enabled: root.running ? root.actions.stop : root.actions.start
+            enabled: root.running ? root.service.syncState !== "stopping" : Model.canStart(root.service)
             foreground: root.running ? root.urgent : root.foreground
             fontFamily: root.fontFamily
-            onClicked: if (root.service) root.running ? root.service.stopSync() : root.service.startSync()
+            onClicked: if (root.service) root.service.toggleSync()
           }
 
           PanelSeparator { foreground: root.foreground }
@@ -178,31 +178,22 @@ Panel {
               spacing: Style.space(6)
               Repeater {
                 model: [
-                { value: "video", label: root.strings.video },
-                { value: "game", label: root.strings.game }
+                  { value: "video", label: root.strings.video },
+                  { value: "game", label: root.strings.game }
                 ]
                 Button {
                   required property var modelData
                   width: (parent.width - parent.spacing) / 2
                   text: modelData.label
-                  selected: String(root.config.mode || "video") === modelData.value
+                  selected: root.config.mode === modelData.value
                   bordered: true
                   focusable: true
-                  enabled: root.actions.mutate && !selected
+                  enabled: !selected
                   foreground: root.foreground
                   fontFamily: root.fontFamily
                   onClicked: if (root.service) root.service.setConfig("mode", modelData.value)
                 }
               }
-            }
-            Text {
-              visible: ["video", "game"].indexOf(String(root.config.mode || "video")) < 0
-              width: parent.width
-              text: root.strings.unsupportedMode
-              color: root.urgent
-              font.family: root.fontFamily
-              font.pixelSize: Style.font.caption
-              wrapMode: Text.WordWrap
             }
           }
 
@@ -217,10 +208,10 @@ Panel {
                 text: "−"
                 bordered: true
                 focusable: true
-                enabled: root.actions.mutate && Number(root.config.brightness || 0) > 0
+                enabled: Number(root.config.brightness) > 0
                 foreground: root.foreground
                 fontFamily: root.fontFamily
-                onClicked: root.service.setBrightness(Number(root.config.brightness || 0) - 5)
+                onClicked: root.service.setBrightness(Number(root.config.brightness) - 5)
               }
               BorderSurface {
                 width: Style.space(80)
@@ -241,10 +232,10 @@ Panel {
                 text: "+"
                 bordered: true
                 focusable: true
-                enabled: root.actions.mutate && Number(root.config.brightness || 0) < 100
+                enabled: Number(root.config.brightness) < 100
                 foreground: root.foreground
                 fontFamily: root.fontFamily
-                onClicked: root.service.setBrightness(Number(root.config.brightness || 0) + 5)
+                onClicked: root.service.setBrightness(Number(root.config.brightness) + 5)
               }
             }
           }
@@ -267,10 +258,10 @@ Panel {
                   required property var modelData
                   width: (parent.width - parent.spacing * 3) / 4
                   text: modelData.label
-                  selected: String(root.config.intensity || "moderate") === modelData.value
+                  selected: root.config.intensity === modelData.value
                   bordered: true
                   focusable: true
-                  enabled: root.actions.mutate && !selected
+                  enabled: !selected
                   foreground: root.foreground
                   fontFamily: root.fontFamily
                   horizontalPadding: Style.space(4)
@@ -286,26 +277,25 @@ Panel {
             width: parent.width
             spacing: Style.space(10)
             PanelSectionHeader { text: root.strings.settings; foreground: root.foreground; fontFamily: root.fontFamily }
-            PanelSectionHeader { text: root.strings.captureBackend; foreground: root.foreground; fontFamily: root.fontFamily }
-            Row {
+            Column {
+              visible: root.screens.length > 1
               width: parent.width
               spacing: Style.space(6)
+              Text { text: root.strings.display; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.bodySmall }
               Repeater {
-                model: [
-                  { value: "portal-pipewire", label: root.strings.portal },
-                  { value: "grim", label: root.strings.grim }
-                ]
+                model: root.screens
                 Button {
                   required property var modelData
-                  width: (parent.width - parent.spacing) / 2
-                  text: modelData.label
-                  selected: String(root.config.backend || "portal-pipewire") === modelData.value
+                  required property int index
+                  width: parent.width
+                  text: modelData.name + " · " + modelData.width + "×" + modelData.height
+                  selected: root.config.screen === modelData.name || (root.config.screen === "" && index === 0)
                   bordered: true
                   focusable: true
-                  enabled: root.actions.mutate && !selected
+                  enabled: !selected
                   foreground: root.foreground
                   fontFamily: root.fontFamily
-                  onClicked: if (root.service) root.service.setConfig("backend", modelData.value)
+                  onClicked: if (root.service) root.service.setConfig("screen", modelData.name)
                 }
               }
             }
@@ -313,34 +303,20 @@ Panel {
               width: parent.width
               label: root.strings.restoreOnStop
               description: root.strings.restoreOnStopHint
-              checked: root.config["restore-on-stop"] === true
-              enabled: root.actions.mutate
+              checked: root.config.restoreOnStop === true
               foreground: root.foreground
               fontFamily: root.fontFamily
-              onClicked: if (root.service) root.service.setConfig("restore-on-stop", !checked)
+              onClicked: if (root.service) root.service.setConfig("restoreOnStop", !checked)
             }
             Toggle {
               width: parent.width
               label: root.strings.autoStart
               description: root.strings.autoStartHint
-              checked: root.config["auto-start"] === true
-              enabled: root.actions.mutate
+              checked: root.config.autoStart === true
               foreground: root.foreground
               fontFamily: root.fontFamily
-              onClicked: if (root.service) root.service.setConfig("auto-start", !checked)
+              onClicked: if (root.service) root.service.setConfig("autoStart", !checked)
             }
-          }
-
-          PanelSeparator { foreground: root.foreground }
-
-          Column {
-            width: parent.width
-            spacing: Style.space(7)
-            PanelSectionHeader { text: root.strings.diagnostics; foreground: root.foreground; fontFamily: root.fontFamily }
-            Text { width: parent.width; text: root.strings.service + ": " + Model.stateLabel(root.status ? root.status.service.state : "", root.strings); color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.bodySmall }
-            Text { width: parent.width; text: root.strings.capture + ": " + Model.stateLabel(root.status ? root.status.capture.state : "", root.strings); color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.bodySmall }
-            Text { width: parent.width; text: root.strings.sync + ": " + Model.stateLabel(root.status ? root.status.sync.state : "", root.strings); color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.bodySmall }
-            Text { width: parent.width; text: Model.fps(root.status, root.strings); color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption }
           }
 
           PanelSeparator { foreground: root.foreground }
@@ -363,22 +339,30 @@ Panel {
                 anchors.verticalCenter: parent.verticalCenter
                 anchors.margins: Style.space(10)
                 spacing: Style.space(7)
-                Text { text: root.strings.bridge + ": " + (root.status && root.status.bridge.state === "ready" ? root.strings.connected : root.strings.notConfigured); color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.body }
-                Text { text: root.strings.area + ": " + root.areaName(); color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.bodySmall; elide: Text.ElideRight; width: parent.width }
+                Text {
+                  width: parent.width
+                  text: root.strings.bridge + ": " + (root.connected
+                    ? root.service.bridge.name + " · " + root.service.bridge.host : root.strings.notConfigured)
+                  color: root.foreground
+                  font.family: root.fontFamily
+                  font.pixelSize: Style.font.body
+                  elide: Text.ElideRight
+                }
+                Text { visible: root.connected; text: root.strings.area + ": " + root.areaName(); color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.bodySmall; elide: Text.ElideRight; width: parent.width }
 
                 Button {
-                  visible: !root.status || root.status.bridge.state !== "ready"
+                  visible: !root.connected
                   width: parent.width
                   text: root.strings.discoverBridge
                   bordered: true
                   focusable: true
-                  enabled: root.service && !root.service.busy && (!root.status || root.status.bridge.state !== "pairing")
+                  enabled: root.service && !root.service.discovering && !root.service.pairing
                   foreground: root.foreground
                   fontFamily: root.fontFamily
                   onClicked: root.service.discoverBridges()
                 }
                 Repeater {
-                  model: root.bridges
+                  model: root.connected ? [] : root.bridges
                   BorderSurface {
                     required property var modelData
                     width: connectionBody.width
@@ -398,57 +382,54 @@ Panel {
                         Text { width: parent.width; text: modelData.name || root.strings.bridge; color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.body; elide: Text.ElideRight }
                         Text { width: parent.width; text: modelData.host; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption; elide: Text.ElideRight }
                       }
-                      Button { id: pairButton; text: root.strings.pair; bordered: true; focusable: true; enabled: root.service && !root.service.busy; foreground: root.foreground; fontFamily: root.fontFamily; onClicked: root.service.useBridge(modelData) }
+                      Button { id: pairButton; text: root.strings.pair; bordered: true; focusable: true; enabled: root.service && !root.service.pairing; foreground: root.foreground; fontFamily: root.fontFamily; onClicked: root.service.useBridge(modelData) }
                     }
                   }
                 }
-                Text { visible: root.service && root.service.bridgesLoaded && root.bridges.length === 0; width: parent.width; text: root.strings.noBridges; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption; wrapMode: Text.WordWrap }
-                Text { visible: root.status && root.status.bridge.state === "pairing"; width: parent.width; text: root.strings.pressLink; color: root.foreground; font.family: root.fontFamily; font.pixelSize: Style.font.bodySmall; wrapMode: Text.WordWrap }
-                Button {
-                  visible: root.status && root.status.bridge.state === "pairing"
+                Text { visible: !root.connected && root.service && root.service.bridgesLoaded && root.bridges.length === 0; width: parent.width; text: root.strings.noBridges; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption; wrapMode: Text.WordWrap }
+                Text {
+                  visible: root.service && root.service.pairing
                   width: parent.width
-                  text: root.strings.completePairing
-                  bordered: true
-                  focusable: true
-                  enabled: root.service && !root.service.busy && root.service.pendingBridgeId !== ""
-                  foreground: root.foreground
-                  fontFamily: root.fontFamily
-                  onClicked: root.service.completePairing()
+                  text: root.strings.pressLink.replace("%1", String(root.service ? root.service.pairingSecondsLeft : 0))
+                  color: root.foreground
+                  font.family: root.fontFamily
+                  font.pixelSize: Style.font.bodySmall
+                  wrapMode: Text.WordWrap
                 }
                 Button {
-                  visible: root.status && root.status.bridge.state === "ready"
+                  visible: root.connected
                   width: parent.width
                   text: root.strings.refreshAreas
                   bordered: true
                   focusable: true
-                  enabled: root.service && !root.service.busy
+                  enabled: root.service && !root.service.requestRunning
                   foreground: root.foreground
                   fontFamily: root.fontFamily
                   onClicked: root.service.refreshAreas()
                 }
                 Repeater {
-                  model: root.areas
+                  model: root.connected ? root.areas : []
                   Button {
                     required property var modelData
                     width: connectionBody.width
                     text: modelData.name + " · " + root.strings.lights.replace("%1", String(modelData.lights))
-                    selected: modelData.selected
+                    selected: root.config.area === modelData.id
                     bordered: true
                     focusable: true
-                    enabled: root.service && !root.service.busy && !modelData.selected
+                    enabled: root.idle && !selected
                     foreground: root.foreground
                     fontFamily: root.fontFamily
                     onClicked: root.service.selectArea(modelData.id)
                   }
                 }
-                Text { visible: root.service && root.service.areasLoaded && root.areas.length === 0; width: parent.width; text: root.strings.noAreas; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption; wrapMode: Text.WordWrap }
+                Text { visible: root.connected && root.service.areasLoaded && root.areas.length === 0; width: parent.width; text: root.strings.noAreas; color: root.dim; font.family: root.fontFamily; font.pixelSize: Style.font.caption; wrapMode: Text.WordWrap }
                 Button {
-                  visible: root.status && ["ready", "unreachable"].indexOf(root.status.bridge.state) >= 0
+                  visible: root.service && root.service.bridge !== null
                   width: parent.width
                   text: root.strings.forgetBridge
                   bordered: true
                   focusable: true
-                  enabled: root.service && !root.service.busy && !root.running
+                  enabled: root.idle
                   foreground: root.urgent
                   fontFamily: root.fontFamily
                   onClicked: root.service.forgetBridge()

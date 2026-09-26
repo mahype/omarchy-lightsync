@@ -8,9 +8,9 @@ receives security fixes.
 ## Reporting a vulnerability
 
 Do not open a public issue for a suspected vulnerability. Use GitHub's private
-security advisory flow for `mahype/omarchy-lightsync`:
+security advisory flow for `mahype/omarchy-lightsync-hue`:
 
-<https://github.com/mahype/omarchy-lightsync/security/advisories/new>
+<https://github.com/mahype/omarchy-lightsync-hue/security/advisories/new>
 
 Include the affected version or commit, impact, reproduction steps, and any
 suggested mitigation. Remove Hue credentials, local addresses, captured image
@@ -20,15 +20,20 @@ the issue is understood and a fix is available.
 
 ## Security boundaries
 
-LightSync handles screen capture, local network traffic, and Hue credentials.
-Capture must remain an explicit user action. Credentials belong in the Linux
-Secret Service and must not be written to logs or ordinary configuration.
+The plugin is unsandboxed QML inside the Omarchy shell. It handles screen
+capture, local network traffic and Hue credentials:
 
-The daemon's Unix socket is intended for the current user only. The Omarchy
-plugin is unsandboxed code loaded into Omarchy Shell, but it does not receive
-Hue secrets or captured frames. It reads the documented status stream and
-issues only explicit CLI controls. Installing the plugin does not install or
-execute the LightSync application.
+- Screen capture runs only while the user has started synchronization.
+  Captured frames are downsampled to about 64 pixels in width, stay in memory
+  and are never written to disk or logged.
+- Hue credentials are stored in the Secret Service, never in the settings file.
+- Bridge requests are TLS-verified against the bundled Signify root
+  certificates with the bridge ID as server name. The application key reaches
+  curl on stdin, not on the command line.
+- The Entertainment client key is passed to `openssl s_client` as a command-line
+  argument while streaming, because openssl has no other way to receive a PSK.
+  Other local users can see it in the process list during a sync. It only
+  authorizes Entertainment streaming to the bridge on the local network.
 
 General bugs and feature requests that do not have security impact may be filed
-at <https://github.com/mahype/omarchy-lightsync/issues>.
+at <https://github.com/mahype/omarchy-lightsync-hue/issues>.

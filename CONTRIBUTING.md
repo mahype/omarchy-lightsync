@@ -1,50 +1,39 @@
-# Contributing to LightSync
+# Contributing to Omarchy Light Sync for Hue
 
-Thank you for improving LightSync. Keep changes focused, explain user-visible
+Thank you for improving the plugin. Keep changes focused, explain user-visible
 behavior, and include tests for state or protocol changes.
 
 ## Development setup
 
-Install Rust 1.85 or newer and the native development packages listed in the
-README. Build and check the workspace with:
+The plugin needs nothing beyond Omarchy. Tests need Node.js:
 
 ```sh
-cargo fmt --all -- --check
-cargo test --workspace
-cargo clippy --workspace --all-targets --all-features -- -D warnings
-```
-
-Integration-only changes should also run:
-
-```sh
-node --test integrations/omarchy/tests
-bash -n install.sh packaging/arch/PKGBUILD
+node --test tests/
+bash -n tools/hue-stream.sh
 omarchy plugin validate .
 ```
 
-Run the last command when the installed Omarchy version provides the plugin
-validator. Test QML changes in a disposable Omarchy plugin checkout when
-possible.
+Pure logic lives in the JavaScript files (`HueBridge.js`, `SyncEngine.js`,
+`ConfigStore.js`, `Model.js`) and is tested with Node. `Service.qml` only wires
+it to processes, files and the capture window.
 
 ## Design requirements
 
-- Keep capture opt-in. A daemon or plugin loading must not start
-  screen capture or synchronization.
-- Do not add privileged helpers or implicit package installation.
-- Keep machine-readable output backward compatible or version its contract.
-- Never log Hue credentials, Secret Service values, captured pixels, or raw
-  frame data.
-- Prefer the streaming status interface over repeated polling.
-- Keep UI copy in English by default.
-- Update dependency disclosures and packaging metadata when native or runtime
-  requirements change.
+- No compiled helpers, daemons, installers or package dependencies. Use only
+  tools Omarchy ships (`curl`, `openssl`, `bash`, `secret-tool`,
+  `avahi-browse`) and Quickshell APIs.
+- Keep capture opt-in. Loading the plugin must not start screen capture or
+  synchronization, unless the user enabled auto start.
+- Keep secrets out of command lines where the tool allows it, and out of logs
+  and the settings file.
+- Keep HTTPS verification against the bundled Hue root certificates.
+- Keep UI copy in English and German.
 
 ## Changes and reviews
 
 Use a descriptive branch and commit history. A pull request should state what
 changed, how it was tested, and whether it affects capture consent, network
-access, credentials, IPC, packaging, or the Omarchy plugin. Do not include
-generated build output, private Bridge data, or secrets.
+access or credentials. Do not include private Bridge data or secrets.
 
 By contributing, you agree that your contribution is licensed under the MIT
 license in this repository.

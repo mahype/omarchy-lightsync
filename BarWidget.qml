@@ -7,17 +7,14 @@ import "Model.js" as Model
 
 BarWidget {
   id: root
-  moduleName: "io.github.mahype.omarchy-lightsync"
+  moduleName: "io.github.mahype.omarchy-lightsync-hue"
 
   readonly property var service: bar && bar.shell && typeof bar.shell.serviceFor === "function"
     ? bar.shell.serviceFor(moduleName) : null
-  readonly property var status: service ? service.status : null
-  readonly property bool installed: service ? service.installed : true
-  readonly property string error: service ? service.error : ""
   readonly property var strings: Model.strings(Qt.locale().name)
-  readonly property string level: Model.level(status, installed)
-  readonly property bool active: Model.isRunning(status)
-  readonly property bool attention: level === "failed" || level === "unavailable" || level === "missing"
+  readonly property string level: Model.level(service)
+  readonly property bool active: Model.isRunning(service)
+  readonly property bool attention: level === "failed"
   readonly property bool opened: panelLoader.item ? panelLoader.item.opened === true : false
   readonly property bool popoutSwitchClosing: panelLoader.item
     ? panelLoader.item.popoutSwitchClosing === true : false
@@ -68,15 +65,24 @@ BarWidget {
       if (root.service) root.service.refresh()
       return "ok"
     }
+    function start(): string { return root.service && root.service.startSync() ? "ok" : "unavailable" }
+    function stop(): string { return root.service && root.service.stopSync() ? "ok" : "unavailable" }
+    function toggleSync(): string { return root.service && root.service.toggleSync() ? "ok" : "unavailable" }
+    function status(): string {
+      var s = root.service
+      if (!s) return "{}"
+      return JSON.stringify({ state: s.syncState, level: root.level, paired: s.paired,
+        bridge: s.bridge ? s.bridge.id : "", area: s.area, fps: Math.round(s.fps * 10) / 10, error: s.error })
+    }
   }
 
   BarIconButton {
     id: button
     anchors.fill: parent
     bar: root.bar
-    text: root.installed ? "󰌵" : "󰌶"
+    text: "󱍖"
     active: root.opened || root.active
-    tooltipText: Model.tooltip(root.status, root.installed, root.error, root.strings)
+    tooltipText: Model.tooltip(root.service, root.strings)
     onPressed: function(buttonCode) {
       if (buttonCode === Qt.RightButton) {
         if (root.service) root.service.toggleSync()
